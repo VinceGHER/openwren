@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.1.0 (not yet released)
+## 0.1.1
+
+- The package is now called `openwren` (0.1.0 was published as `open-wren`), with a proper description and maintainer.
+- OpenWren starts in the tray when you log in; switch it off in Settings → Notifications. The login entry is skipped once the program is uninstalled.
+- Signatures: one table says which accounts use a signature for new mail and for replies; changes save by themselves.
+- Links in a message open in the browser; the conversation list can be folded.
+
+## 0.1.0
 
 First version.
 

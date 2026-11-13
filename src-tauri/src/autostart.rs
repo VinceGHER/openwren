@@ -46,7 +46,9 @@ fn quoted(path: &Path) -> String {
 
 fn entry(program: &Path) -> String {
     format!(
-        "[Desktop Entry]\nType=Application\nName=OpenWren\nComment=Check for new mail in the background\nExec={} {HIDDEN}\nIcon=openwren\nTerminal=false\nX-GNOME-Autostart-enabled=true\n",
+        "[Desktop Entry]\nType=Application\nName=OpenWren\nComment=Check for new mail in the background\nTryExec={}\nExec={} {HIDDEN}\nIcon=openwren\nTerminal=false\nX-GNOME-Autostart-enabled=true\n",
+        // TryExec: the desktop skips the entry once the program is gone, as after an uninstall.
+        program.display(),
         quoted(program)
     )
 }

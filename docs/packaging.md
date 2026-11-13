@@ -19,14 +19,14 @@ The repositories are plain files in the Cloudflare R2 bucket `openwren-packages`
 ```
 key.gpg  key.asc                 public signing key (binary and armored)
 apt/dists/stable/...             apt index and signatures
-apt/pool/main/o/open-wren/...    .deb files
+apt/pool/main/o/openwren/...     .deb files
 apt/key.gpg  apt/key.asc         same key (written by the apt script)
 rpm/*.rpm                        signed .rpm files
 rpm/repodata/...                 rpm index and repomd.xml.asc
 rpm/openwren.repo
 ```
 
-Package name: Tauri derives it from `productName`, so the package itself is called **`open-wren`** (the installed program is `/usr/bin/openwren`). Both packages declare `Provides: openwren`, so `apt install openwren` and `dnf install openwren` work and are what the documentation tells users to run; package lists and `apt remove` show `open-wren`.
+Package name: **`openwren`**, like the installed program `/usr/bin/openwren`. Tauri derives the package name from `productName`, which is therefore lowercase in `tauri.conf.json`; the name shown in the applications menu, "OpenWren", comes from the desktop entry template `src-tauri/openwren.desktop`. Version 0.1.0 was published as `open-wren`; the packages declare that they replace it.
 
 ## One-time setup
 
@@ -117,7 +117,7 @@ gpg --batch --passphrase '' --quick-generate-key "Test <test@example.invalid>" r
 export OPENWREN_GPG_KEY=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/ {print $10; exit}')
 
 mkdir "$work/in"
-cp src-tauri/target/release/bundle/deb/OpenWren_*.deb "$work/in/"
+cp src-tauri/target/release/bundle/deb/openwren_*.deb "$work/in/"
 scripts/make-apt-repo.sh "$work/in" "$work/apt"
 ```
 
@@ -127,7 +127,7 @@ Install from it in a clean container:
 docker run --rm -v "$work/apt":/repo:ro ubuntu:24.04 bash -c '
   install -m 644 /repo/key.gpg /usr/share/keyrings/openwren.gpg
   echo "deb [signed-by=/usr/share/keyrings/openwren.gpg] file:///repo stable main" > /etc/apt/sources.list.d/openwren.list
-  apt-get update && apt-get install -y open-wren && openwren --version'
+  apt-get update && apt-get install -y openwren && openwren --version'
 ```
 
 The rpm side, in Fedora (mount the scripts, the key directory and a directory holding an `.rpm`):
