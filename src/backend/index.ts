@@ -106,6 +106,8 @@ export interface Backend {
   suggestContacts(typed: string): Promise<Contact[]>;
   /** Lets the user choose files to attach; returns their paths. */
   pickFiles(): Promise<string[]>;
+  /** Opens a file attached to a message being written, in the program for its type. */
+  openPickedFile(path: string): Promise<void>;
   /** Asks where to save, then writes the attachment. False when the user cancelled. */
   saveAttachment(id: number, index: number, name: string): Promise<boolean>;
   /** Opens the attachment in the program this computer uses for its type. */
@@ -183,6 +185,7 @@ const tauriBackend: Backend = {
   suggestContacts: (typed) => invoke("suggest_contacts", { typed }),
   // File dialogs are shown by the engine, which then accepts only what the user chose there.
   pickFiles: () => invoke("pick_attachments"),
+  openPickedFile: (path) => invoke("open_picked_file", { path }),
   saveAttachment: (id, index, name) => invoke("save_attachment", { id, index, name }),
   openAttachment: (id, index, name) => invoke("open_attachment", { id, index, name }),
   saveMessage: (id, name) => invoke("save_message", { id, name }),

@@ -1140,6 +1140,20 @@ async fn ask_save_path(app: &AppHandle, suggested: &str) -> Result<Option<std::p
 }
 
 /// Let the user choose files to attach. Only files chosen here can be attached later.
+/// Open a file the user attached to a message they are writing, to check it before sending.
+/// Only files chosen in the file dialog can be opened this way.
+#[tauri::command]
+fn open_picked_file(app: AppHandle, state: State<'_, AppState>, path: String) -> Result<()> {
+    use tauri_plugin_opener::OpenerExt;
+    if !db::was_picked(&db::lock(&state.db), &path)? {
+        return Err(Error("Only files you attached can be opened.".into()));
+    }
+    if !std::path::Path::new(&path).is_file() {
+        return Err(Error("That file is no longer where it was when you attached it.".into()));
+    }
+    app.opener().open_path(&path, None::<&str>).map_err(|e| Error(format!("No program on this computer opens that file: {e}")))
+}
+
 #[tauri::command]
 async fn pick_attachments(app: AppHandle, state: State<'_, AppState>) -> Result<Vec<String>> {
     use tauri_plugin_dialog::DialogExt;
@@ -1499,6 +1513,7 @@ pub fn run() {
             stats_preview,
             mark_ready,
             pick_attachments,
+            open_picked_file,
             open_attachment,
             save_message
         ])

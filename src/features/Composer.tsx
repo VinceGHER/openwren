@@ -328,8 +328,15 @@ export function Composer({ className }: { className: string }) {
         <div className="mt-3 flex flex-none flex-wrap gap-2">
           {files.map((path) => (
             <span key={path} className="inline-flex items-center gap-1.5 rounded-[10px] border border-edge py-1 pr-1 pl-2.5 text-ink2" title={path}>
-              <IconPaperclip size={15} />
-              {path.split(/[\\/]/).pop()}
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 hover:text-ink hover:underline"
+                title={`Open ${path}`}
+                onClick={() => void backend.openPickedFile(path).catch((e) => setError(errorText(e)))}
+              >
+                <IconPaperclip size={15} />
+                {path.split(/[\\/]/).pop()}
+              </button>
               <IconButton label="Remove attachment" className="size-6" onClick={() => {
                   setFiles((f) => f.filter((p) => p !== path));
                   touch();

@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import Command from '../components/Command.astro';
+import OsIcon from '../components/OsIcon.astro';
 import { REPO_URL, RELEASES_URL } from '../site';
 
 const PREVIEW = 'https://packages.openwren.app/preview';
@@ -11,9 +12,9 @@ const PREVIEW = 'https://packages.openwren.app/preview';
   <p>OpenWren runs on Linux, macOS and Windows. Choose your system.</p>
 
   <div class="os-switch" role="tablist" aria-label="Your system">
-    <button type="button" role="tab" data-os="linux" aria-selected="true">Linux</button>
-    <button type="button" role="tab" data-os="macos" aria-selected="false">macOS</button>
-    <button type="button" role="tab" data-os="windows" aria-selected="false">Windows</button>
+    <button type="button" role="tab" data-os="linux" aria-selected="true"><OsIcon os="linux" /> Linux</button>
+    <button type="button" role="tab" data-os="macos" aria-selected="false"><OsIcon os="macos" /> macOS</button>
+    <button type="button" role="tab" data-os="windows" aria-selected="false"><OsIcon os="windows" /> Windows</button>
   </div>
 
   <section class="os-panel" data-os="linux" id="linux" role="tabpanel" aria-label="Linux">
@@ -85,7 +86,7 @@ const PREVIEW = 'https://packages.openwren.app/preview';
       not signed with an Apple certificate, so the first start needs the extra step below.
     </p>
     <p>
-      <a class="button" href={`${PREVIEW}/OpenWren-macos-arm64.dmg`}>Download for macOS</a>
+      <a class="button" href={`${PREVIEW}/OpenWren-macos-arm64.dmg`}><OsIcon os="macos" /> Download for macOS</a>
     </p>
     <p class="muted">For Macs with Apple silicon (M1 or later), macOS 11 or later. Intel Macs are not supported yet.</p>
 
@@ -115,7 +116,7 @@ const PREVIEW = 'https://packages.openwren.app/preview';
       is not signed with a certificate, so Windows shows a warning the first time.
     </p>
     <p>
-      <a class="button" href={`${PREVIEW}/OpenWren-windows-x64-setup.exe`}>Download for Windows</a>
+      <a class="button" href={`${PREVIEW}/OpenWren-windows-x64-setup.exe`}><OsIcon os="windows" /> Download for Windows</a>
     </p>
     <p class="muted">For 64-bit Windows 10 and 11.</p>
 
@@ -186,6 +187,9 @@ const PREVIEW = 'https://packages.openwren.app/preview';
     background: var(--code-bg);
   }
   .os-switch button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
     padding: 7px 18px;
     border: 0;
     border-radius: 7px;

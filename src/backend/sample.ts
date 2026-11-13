@@ -461,6 +461,7 @@ export const sampleBackend: Backend = {
     endpoint: "https://stats.openwren.app/ping",
     active: false,
   }),
+  openPickedFile: async () => {},
   openAttachment: async () => {
     throw desktopOnly("Opening attachments");
   },

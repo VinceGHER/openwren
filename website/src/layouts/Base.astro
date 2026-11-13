@@ -15,10 +15,10 @@ const title = Astro.props.title ?? frontmatter?.title;
 const description =
   Astro.props.description ??
   frontmatter?.description ??
-  'A modern, free, open-source mail app for Linux, macOS and Windows that keeps your mail on your computer. Fast, private, built with Rust.';
+  'A modern, privacy-first, free and open-source mail app for Linux, macOS and Windows that keeps your mail on your computer. Fast, built with Rust.';
 // Markdown pages (which pass frontmatter) get the narrow reading column.
 const narrow = Astro.props.narrow ?? Boolean(frontmatter);
-const pageTitle = title ? `${title} · OpenWren` : 'OpenWren: a modern, free, open-source mail app';
+const pageTitle = title ? `${title} · OpenWren` : 'OpenWren: a modern, privacy-first, open-source mail app';
 
 const nav = [
   { href: '/download/', label: 'Download' },
