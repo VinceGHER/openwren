@@ -10,6 +10,10 @@ entry="$data/applications/openwren.desktop"
 
 if [ "$1" = "remove" ]; then
   rm -f "$entry" "$data"/icons/hicolor/*/apps/openwren.png
+  # Refresh the indexes too: a stale one keeps pointing the desktop at the removed
+  # icons, which hides the icon of a packaged OpenWren installed later.
+  update-desktop-database "$data/applications" 2>/dev/null || true
+  gtk-update-icon-cache -q -f -t "$data/icons/hicolor" 2>/dev/null || true
   echo "Launcher removed."
   exit 0
 fi
