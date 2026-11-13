@@ -61,6 +61,8 @@ async function shots(scheme) {
   await page.waitForTimeout(400);
   await page.screenshot({ path: name("mailing") });
 
+  if (scheme === "light") await features(page, open, row);
+
   // The welcome screen.
   await page.locator('button[aria-label="Settings"]').click();
   await page.locator('nav[aria-label="Settings sections"] button', { hasText: "About" }).click();
@@ -71,8 +73,93 @@ async function shots(scheme) {
   await context.close();
 }
 
+/** Smaller pictures, one per feature, for the README's feature list. */
+async function features(page, open, row) {
+  const dir = join(out, "features");
+  mkdirSync(dir, { recursive: true });
+  const pane = page.locator('[aria-label="Reading pane"]');
+  // The top part of an area, without the empty space below it.
+  const top = async (area, file, height) => {
+    const box = await area.boundingBox();
+    await page.screenshot({ path: join(dir, file), clip: { x: box.x, y: box.y, width: box.width, height } });
+  };
+  const left = { x: 0, y: 0, width: 600, height: 760 };
+
+  // Several accounts, one inbox.
+  await open();
+  await page.locator('nav[aria-label=Folders] button', { hasText: "All inboxes" }).click();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: join(dir, "accounts.png"), clip: left });
+
+  // Search with operators and filters.
+  await page.locator('input[aria-label="Search mail"]').fill("invoice");
+  await page.waitForTimeout(700);
+  const list = await page.locator("[aria-label=Messages]").boundingBox();
+  await page.screenshot({ path: join(dir, "search.png"), clip: { x: list.x, y: 0, width: list.width, height: 620 } });
+  await page.locator('input[aria-label="Search mail"]').fill("");
+
+  // A suspicious message.
+  await open();
+  await row("PayPal Security").click();
+  await pane.locator("[role=alert] button", { hasText: "Details" }).click();
+  await page.waitForTimeout(300);
+  await top(pane, "phishing.png", 430);
+
+  // Trackers removed and unsubscribe.
+  await page.locator("[aria-label=Show] button", { hasText: "Other" }).click();
+  await row("Spotify").click();
+  await page.waitForSelector('[aria-label="Reading pane"] iframe');
+  await page.waitForTimeout(400);
+  await top(pane, "trackers.png", 350);
+
+  // The "more" menu: move, colours, block, view source.
+  await open();
+  await row("Mona Kane").click();
+  await page.waitForTimeout(400);
+  await page.locator('[aria-label="More actions"]').click();
+  await page.locator("[role=menu] [role=menuitem]", { hasText: "Move to" }).click();
+  await page.waitForTimeout(200);
+  await top(pane, "organise.png", 560);
+  await page.keyboard.press("Escape");
+
+  // Writing a message.
+  await open();
+  await page.locator("nav[aria-label=Folders] button", { hasText: "New mail" }).click();
+  const composer = page.locator('section[aria-label="New message"]');
+  await composer.locator('input[placeholder="name@company.com"]').fill("Mona Kane <mona.kane@example.com>");
+  await composer.locator("label", { hasText: "Subject" }).locator("input").fill("Agenda for Thursday");
+  await composer.locator(".ProseMirror").click();
+  await page.keyboard.type("Hi Mona,");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Here is the agenda for Thursday. I have added the budget review as the first point.");
+  await page.waitForTimeout(1800);
+  const box = await composer.boundingBox();
+  await page.screenshot({ path: join(dir, "writing.png"), clip: { x: box.x, y: box.y, width: box.width, height: 330 } });
+
+  // Privacy settings.
+  await open();
+  await page.locator('button[aria-label="Settings"]').click();
+  await page.locator('nav[aria-label="Settings sections"] button', { hasText: "Privacy" }).click();
+  await page.waitForTimeout(300);
+  await page.locator('[role=dialog][aria-label="Settings"]').screenshot({ path: join(dir, "privacy.png") });
+  await page.keyboard.press("Escape");
+  await open();
+}
+
+/** The banner at the top of the README, also sized for GitHub's social preview. */
+async function cover() {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 640 }, deviceScaleFactor: 2 });
+  const page = await context.newPage();
+  await page.goto(new URL("./cover.html", import.meta.url).href);
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: join(out, "cover.png") });
+  await context.close();
+}
+
 await shots("light");
 await shots("dark");
+await cover();
 await browser.close();
 
 // The website shows the light ones.
