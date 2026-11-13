@@ -17,6 +17,7 @@ import { REPOSITORY } from "../lib/links";
 import { TEXT_SIZES } from "../lib/font";
 import { useStore } from "../store";
 import { preferAccountKind } from "./AddAccount";
+import { MOD } from "../lib/keys";
 
 const STEPS = ["Welcome", "Account", "Look", "Ready"] as const;
 
@@ -243,8 +244,8 @@ export function Onboarding() {
                 </p>
                 <div className="mt-7 flex flex-col gap-2.5 text-ink2">
                   {[
-                    ["Ctrl K", "Search all your mail"],
-                    ["Ctrl N", "Write a new message"],
+                    [`${MOD} K`, "Search all your mail"],
+                    [`${MOD} N`, "Write a new message"],
                     ["Right-click", "Block a sender, snooze, move or view the source"],
                   ].map(([keys, what]) => (
                     <div key={keys} className="flex items-center gap-3">

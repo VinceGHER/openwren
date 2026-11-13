@@ -6,6 +6,7 @@ import { Button, IconButton, Menu } from "../components/ui";
 import { signatureHtml } from "../lib/signature";
 import { useStore } from "../store";
 import type { Contact, Draft } from "../types";
+import { mod } from "../lib/keys";
 
 const field = "flex items-center gap-3 border-b border-edge py-2";
 const label = "w-16 flex-none text-ink2";
@@ -206,7 +207,7 @@ export function Composer({ className }: { className: string }) {
       className={`${className} flex flex-col px-5 py-4`}
       aria-label="New message"
       onKeyDown={(e) => {
-        if (e.ctrlKey && e.key === "Enter") void submit();
+        if (mod(e) && e.key === "Enter") void submit();
       }}
     >
       <div className="mb-1.5 flex items-center gap-2">

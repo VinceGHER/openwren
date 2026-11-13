@@ -34,6 +34,7 @@ import { useStore } from "../store";
 import { Composer } from "./Composer";
 import { HtmlBody } from "./HtmlBody";
 import { messageMenu, moveItems, snoozeItems } from "./actions";
+import { mod } from "../lib/keys";
 
 const shell = "min-w-0 flex-1 overflow-y-auto bg-card";
 
@@ -127,7 +128,7 @@ function QuickReply({ to }: { to: string }) {
           onKeyDown={(e) => {
             // Keep typing keys (Delete, arrows) away from the message shortcuts.
             e.stopPropagation();
-            if (e.ctrlKey && e.key === "Enter") void send();
+            if (mod(e) && e.key === "Enter") void send();
           }}
           placeholder={`Reply to ${to}`}
           aria-label={`Reply to ${to}`}

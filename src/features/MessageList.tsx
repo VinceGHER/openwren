@@ -8,6 +8,7 @@ import type { Only } from "../store";
 import type { MessageSummary, StoredDraft } from "../types";
 import { messageMenu } from "./actions";
 import { SearchChips } from "./SearchChips";
+import { MOD, mod } from "../lib/keys";
 
 /** Drag-and-drop type for message ids dragged onto a folder. */
 export const DRAG_TYPE = "application/x-openwren-messages";
@@ -147,7 +148,7 @@ export function MessageList({ width }: { width: number }) {
   // Ctrl+K (or Ctrl+E, as in Outlook) jumps to search.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey && ["k", "e"].includes(e.key.toLowerCase())) {
+      if (mod(e) && ["k", "e"].includes(e.key.toLowerCase())) {
         e.preventDefault();
         search.current?.focus();
       }
@@ -197,7 +198,7 @@ export function MessageList({ width }: { width: number }) {
               <IconX size={16} />
             </button>
           ) : (
-            <span className="flex-none text-[11px] text-ink3">Ctrl K</span>
+            <span className="flex-none text-[11px] text-ink3">{MOD} K</span>
           )}
         </label>
         {query ? (

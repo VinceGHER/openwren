@@ -9,6 +9,7 @@ import { SourceView } from "../features/SourceView";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { fontChoice, fontStack } from "../lib/font";
 import { useStore } from "../store";
+import { isMac, mod } from "../lib/keys";
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
@@ -60,15 +61,15 @@ function onShortcut(e: KeyboardEvent) {
   const s = useStore.getState();
   if (s.dialog || s.welcome) return;
   const key = e.key.toLowerCase();
-  if (e.ctrlKey && key === "n") return e.preventDefault(), s.compose();
+  if (mod(e) && key === "n") return e.preventDefault(), s.compose();
   if (typing(e.target) || s.draft) return;
   const open = s.detail;
   const ids = s.targets();
-  if (e.ctrlKey && e.shiftKey && key === "r") return e.preventDefault(), s.reply("reply-all");
-  if (e.ctrlKey && key === "r") return e.preventDefault(), s.reply("reply");
-  if (e.ctrlKey && key === "f") return e.preventDefault(), s.reply("forward");
-  if (e.ctrlKey && key === "z") return e.preventDefault(), s.toast?.action?.run();
-  if (e.ctrlKey && (key === "q" || key === "u")) return e.preventDefault(), ids.forEach((id) => void s.setFlags(id, { unread: key === "u" }));
+  if (mod(e) && e.shiftKey && key === "r") return e.preventDefault(), s.reply("reply-all");
+  if (mod(e) && key === "r") return e.preventDefault(), s.reply("reply");
+  if (mod(e) && key === "f") return e.preventDefault(), s.reply("forward");
+  if (mod(e) && key === "z") return e.preventDefault(), s.toast?.action?.run();
+  if (mod(e) && ((key === "q" && !isMac) || key === "u")) return e.preventDefault(), ids.forEach((id) => void s.setFlags(id, { unread: key === "u" }));
   if (e.ctrlKey || e.altKey || e.metaKey) return;
   if (e.key === "Delete" && ids.length) return e.preventDefault(), void s.deleteMessages(ids);
   if (e.key === "Backspace" && ids.length) return e.preventDefault(), void s.moveMessages(ids, { role: "archive" });

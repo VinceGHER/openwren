@@ -4,6 +4,7 @@ import { backend, errorText } from "../backend";
 import { Button, IconButton } from "../components/ui";
 import { useStore } from "../store";
 
+
 /**
  * A message as it arrived: its headers, or the whole raw text. For checking
  * where a message really came from and which servers handled it.
@@ -48,7 +49,7 @@ export function SourceView({ id }: { id: number }) {
               void navigator.clipboard
                 .writeText(shown)
                 .then(() => showToast("Copied"))
-                .catch(() => showToast("Could not copy. Select the text and press Ctrl+C."))
+                .catch(() => showToast("Could not copy. Select the text and copy it."))
             }
           >
             Copy
