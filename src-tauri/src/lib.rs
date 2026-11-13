@@ -1218,10 +1218,10 @@ fn count_usage(app: &AppHandle) {
     static NEXT_TRY: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(0);
     use std::sync::atomic::Ordering::Relaxed;
     if NEXT_TRY.load(Relaxed) == 0 {
-        // Not at the very moment of starting, and not at the same second for everyone.
+        // Within the first 30 seconds: not at the very moment of starting, and not at the same second for everyone.
         let mut random = [0u8; 2];
         let _ = getrandom::fill(&mut random);
-        NEXT_TRY.store(now() + 120 + i64::from(u16::from_le_bytes(random)) % 600, Relaxed);
+        NEXT_TRY.store(now() + 10 + i64::from(u16::from_le_bytes(random)) % 20, Relaxed);
     }
     if now() < NEXT_TRY.load(Relaxed) {
         return;
