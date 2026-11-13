@@ -115,6 +115,8 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn the_published_version_file_is_readable() {
+        // The app chooses its encryption provider when it starts (lib.rs); a test must do the same.
+        let _ = tokio_rustls::rustls::crypto::ring::default_provider().install_default();
         let found = check("0.0.1").await.unwrap().expect("a version newer than 0.0.1 is published");
         assert!(newer(&found.version, "0.0.1"));
     }
