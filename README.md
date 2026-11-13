@@ -5,7 +5,7 @@
 # OpenWren
 
 A modern, privacy-first mail app that keeps your mail on your computer. Free
-and open source, for Linux and Windows, with a [macOS preview](https://openwren.app/download/).
+and open source, for [Linux, Windows and macOS](https://openwren.app/download/).
 It is built with **Rust** (the engine: sync, search, encryption) and **React**
 (the interface), which makes it small and fast: a 14 MB download that starts in
 about half a second.
@@ -62,7 +62,7 @@ Method, all numbers and how to rerun them: [docs/benchmarks.md](docs/benchmarks.
 
 ## Install
 
-OpenWren runs on Linux and Windows, with a first macOS build to try. The same
+OpenWren runs on Linux, Windows and macOS. The same
 steps, with copy buttons, are on the [download page](https://openwren.app/download/).
 
 ### Linux
@@ -111,13 +111,22 @@ For 64-bit Windows 10 and 11. Tested on Windows 11.
 
 OpenWren tells you when a new version is out and installs it for you.
 
-### macOS (preview)
+### macOS
 
-For all Macs, Apple silicon and Intel, with macOS 11 or later. This build has
-not been tried on a real Mac yet. Download
-[OpenWren-macos-universal.dmg](https://packages.openwren.app/latest/OpenWren-macos-universal.dmg),
-drag OpenWren into Applications, then right-click it and choose **Open** the
-first time, because it is not signed with an Apple certificate.
+For all Macs, Apple silicon and Intel, with macOS 11 or later. Tested on
+macOS 14 with an Intel processor; not yet tried on Apple silicon.
+
+1. Download [OpenWren-macos-universal.dmg](https://packages.openwren.app/latest/OpenWren-macos-universal.dmg), open it and drag OpenWren into Applications.
+2. Open OpenWren. The app is not signed with an Apple certificate yet, so
+   macOS refuses the first time ("cannot be opened because Apple cannot check
+   it for malicious software"). Click **OK**.
+3. Open Terminal, run this once, and open OpenWren again:
+
+```bash
+xattr -cr /Applications/OpenWren.app
+```
+
+OpenWren tells you when a new version is out and installs it for you.
 
 Checksums of the Windows and macOS files:
 [SHA256SUMS](https://packages.openwren.app/latest/SHA256SUMS).

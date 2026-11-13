@@ -84,8 +84,8 @@ const updates = RELEASE.selfUpdating
 
   <section class="os-panel" data-os="macos" id="macos" role="tabpanel" aria-label="macOS">
     <p class="note">
-      <strong>Preview.</strong> The macOS version is built automatically and has not been tried on a real Mac yet. It
-      is not signed with an Apple certificate, so the first start needs the extra step below.
+      <strong>Tested on macOS 14</strong> with an Intel processor; not yet tried on Apple silicon. The app is not
+      signed with an Apple certificate, so macOS blocks the first start until you do the extra step below.
     </p>
     <p>
       <a class="button" href={RELEASE.mac}><OsIcon os="macos" /> Download {RELEASE.version} for macOS</a>
@@ -95,8 +95,11 @@ const updates = RELEASE.selfUpdating
     <h3>Install</h3>
     <ol>
       <li>Open the downloaded file and drag OpenWren into Applications.</li>
-      <li>The first time, right-click OpenWren in Applications and choose Open, then Open again.</li>
-      <li>If macOS says the app is damaged, run this once in Terminal and open it again:</li>
+      <li>
+        Open OpenWren. macOS refuses the first time, with "cannot be opened because Apple cannot check it for malicious
+        software" (or "is damaged"). Click OK.
+      </li>
+      <li>Open Terminal, run this once, and open OpenWren again:</li>
     </ol>
     <Command code="xattr -cr /Applications/OpenWren.app" />
     <p>{updates}</p>
