@@ -4,6 +4,8 @@
 const TYPES = {
   deb: "application/vnd.debian.binary-package",
   rpm: "application/x-rpm",
+  dmg: "application/x-apple-diskimage",
+  exe: "application/vnd.microsoft.portable-executable",
   gz: "application/gzip",
   xml: "application/xml",
   asc: "text/plain; charset=utf-8",
@@ -54,6 +56,8 @@ export default {
     headers.set("ETag", object.httpEtag);
     headers.set("Accept-Ranges", "bytes");
     headers.set("Cache-Control", cacheFor(key));
+    // Installers are saved, never shown in the browser.
+    if (/\.(dmg|exe)$/.test(key)) headers.set("Content-Disposition", `attachment; filename="${key.split("/").pop().replace(/[^\w.-]/g, "_")}"`);
     headers.set("Content-Type", TYPES[key.split(".").pop()] ?? (key.includes("/dists/") || key.endsWith("Release") ? "text/plain; charset=utf-8" : "application/octet-stream"));
 
     // No body means a condition in the request was not met.

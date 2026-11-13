@@ -172,7 +172,7 @@ export function Onboarding() {
             {step === 1 && (
               <>
                 <h1 className="text-[30px] leading-tight text-ink">Add your mail account</h1>
-                <p className="mt-3 text-ink2">Your password or sign-in is kept in your system keyring, never in OpenWren's files.</p>
+                <p className="mt-3 text-ink2">Your password or sign-in is kept in your system's password store, never in OpenWren's files.</p>
                 {accounts.length > 0 && (
                   <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-soft px-3 py-1 text-brand">
                     <IconCheck size={16} /> {accounts.length === 1 ? accounts[0].address : `${accounts.length} accounts`} added

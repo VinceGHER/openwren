@@ -496,7 +496,7 @@ function Privacy() {
           ))}
         </div>
       )}
-      <p className="text-[13px] text-ink2">Always on: the mail database is encrypted, passwords stay in the system keyring, and pictures from the internet are loaded only when you ask.</p>
+      <p className="text-[13px] text-ink2">Always on: the mail database is encrypted, passwords stay in the system's password store, and pictures from the internet are loaded only when you ask.</p>
     </>
   );
 }
@@ -694,7 +694,7 @@ function About() {
           <div className="text-ink2">{info ? `Version ${info.version}` : "Browser preview on sample mail"}</div>
         </div>
       </div>
-      <p className="mt-4">An open-source mail client for Linux. Your mail is kept on this computer, encrypted, and in sync with your mail server.</p>
+      <p className="mt-4">An open-source mail client. Your mail is kept on this computer, encrypted, and in sync with your mail server.</p>
       <div className="mt-4 text-[13px]">
         <div className={row}>
           <span className={name}>Licence</span>
@@ -717,7 +717,7 @@ function About() {
             </div>
             <div className={row}>
               <span className={name}>Encryption</span>
-              <span>{info.cipher ? `Encrypted with SQLCipher ${info.cipher.split(" ")[0]}. The key is in your system keyring.` : "Not encrypted"}</span>
+              <span>{info.cipher ? `Encrypted with SQLCipher ${info.cipher.split(" ")[0]}. The key is in your system's password store.` : "Not encrypted"}</span>
             </div>
             <div className={row}>
               <span className={name}>Database version</span>

@@ -2,74 +2,215 @@
 import Base from '../layouts/Base.astro';
 import Command from '../components/Command.astro';
 import { REPO_URL, RELEASES_URL } from '../site';
+
+const PREVIEW = 'https://packages.openwren.app/preview';
 ---
 
-<Base title="Download" description="Install OpenWren with apt, dnf or as an AppImage." narrow>
+<Base title="Download" description="Download OpenWren for Linux, macOS or Windows." narrow>
   <h1>Download</h1>
-  <p>
-    OpenWren runs on Linux. Pick the section for your distribution. The apt and dnf repositories also deliver updates
-    through your normal system updates.
-  </p>
-  <p class="muted">
-    <a href="#apt">apt</a> · <a href="#dnf">dnf</a> · <a href="#appimage">AppImage</a> ·
-    <a href="#source">Build from source</a> · <a href="#uninstall">Uninstall</a>
-  </p>
+  <p>OpenWren runs on Linux, macOS and Windows. Choose your system.</p>
 
-  <h2 id="apt">Debian, Ubuntu and derivatives (apt)</h2>
-  <p>1. Add the signing key.</p>
-  <Command code="curl -fsSL https://packages.openwren.app/key.gpg | sudo tee /usr/share/keyrings/openwren.gpg > /dev/null" />
-  <p>2. Add the repository.</p>
-  <Command
-    code={'echo "deb [signed-by=/usr/share/keyrings/openwren.gpg] https://packages.openwren.app/apt stable main" | sudo tee /etc/apt/sources.list.d/openwren.list'}
-  />
-  <p>3. Install.</p>
-  <Command code="sudo apt update && sudo apt install openwren" />
+  <div class="os-switch" role="tablist" aria-label="Your system">
+    <button type="button" role="tab" data-os="linux" aria-selected="true">Linux</button>
+    <button type="button" role="tab" data-os="macos" aria-selected="false">macOS</button>
+    <button type="button" role="tab" data-os="windows" aria-selected="false">Windows</button>
+  </div>
 
-  <h2 id="dnf">Fedora (dnf)</h2>
-  <p>1. Add the repository.</p>
-  <Command code="sudo dnf config-manager addrepo --from-repofile=https://packages.openwren.app/rpm/openwren.repo" />
-  <p>2. Install.</p>
-  <Command code="sudo dnf install openwren" />
+  <section class="os-panel" data-os="linux" id="linux" role="tabpanel" aria-label="Linux">
+    <p>
+      Pick the section for your distribution. The apt and dnf repositories also deliver updates through your normal
+      system updates.
+    </p>
+    <p class="muted">
+      <a href="#apt">apt</a> · <a href="#dnf">dnf</a> · <a href="#appimage">AppImage</a> ·
+      <a href="#uninstall">Uninstall</a> · <a href="#key">Signing key</a>
+    </p>
 
-  <h2 id="appimage">AppImage</h2>
-  <p>
-    For any other distribution, download the AppImage from the
-    <a href={RELEASES_URL}>latest release on GitHub</a>, make the file executable and run it.
-  </p>
+  <h3 id="apt">Debian, Ubuntu and derivatives (apt)</h3>
+    <p>1. Add the signing key.</p>
+    <Command code="curl -fsSL https://packages.openwren.app/key.gpg | sudo tee /usr/share/keyrings/openwren.gpg > /dev/null" />
+    <p>2. Add the repository.</p>
+    <Command
+      code={'echo "deb [signed-by=/usr/share/keyrings/openwren.gpg] https://packages.openwren.app/apt stable main" | sudo tee /etc/apt/sources.list.d/openwren.list'}
+    />
+    <p>3. Install.</p>
+    <Command code="sudo apt update && sudo apt install openwren" />
 
-  <h2 id="uninstall">Uninstall</h2>
-  <p>Remove the package with your package manager:</p>
-  <Command code="sudo apt remove openwren" />
-  <Command code="sudo dnf remove openwren" />
-  <p>
-    Like other Linux apps, this leaves your own data in place, so that a reinstall finds your accounts and mail again.
-    To remove everything, quit OpenWren first (tray icon, then Quit) and run these three commands.
-  </p>
-  <p>1. The downloaded mail, search index, drafts and settings (the encrypted database).</p>
-  <Command code="rm -rf ~/.local/share/org.openwren.app" />
-  <p>2. The start-at-login entry.</p>
-  <Command code="rm -f ~/.config/autostart/openwren.desktop" />
-  <p>3. The account passwords and the database key in the system keyring.</p>
-  <Command code="secret-tool clear service OpenWren" />
-  <p>
-    <code>secret-tool</code> is in the package <code>libsecret-tools</code> (Debian, Ubuntu) or
-    <code>libsecret</code> (Fedora). Without it, open "Passwords and Keys", search for "OpenWren" and delete the
-    entries. Your mail stays on your mail servers; only the copy on this computer is deleted.
-  </p>
+    <h3 id="dnf">Fedora (dnf)</h3>
+    <p>1. Add the repository.</p>
+    <Command code="sudo dnf config-manager addrepo --from-repofile=https://packages.openwren.app/rpm/openwren.repo" />
+    <p>2. Install.</p>
+    <Command code="sudo dnf install openwren" />
 
-  <h2 id="key">Signing key</h2>
-  <p>
-    The apt and dnf repositories are signed with the OpenWren GPG key. Before you trust the key, compare its
-    fingerprint with the one below.
+    <h3 id="appimage">AppImage</h3>
+    <p>
+      For any other distribution, download the AppImage from the
+      <a href={RELEASES_URL}>latest release on GitHub</a>, make the file executable and run it.
+    </p>
+
+    <h3 id="uninstall">Uninstall</h3>
+    <p>Remove the package with your package manager:</p>
+    <Command code="sudo apt remove openwren" />
+    <Command code="sudo dnf remove openwren" />
+    <p>
+      Like other Linux apps, this leaves your own data in place, so that a reinstall finds your accounts and mail again.
+      To remove everything, quit OpenWren first (tray icon, then Quit) and run these three commands.
+    </p>
+    <p>1. The downloaded mail, search index, drafts and settings (the encrypted database).</p>
+    <Command code="rm -rf ~/.local/share/org.openwren.app" />
+    <p>2. The start-at-login entry.</p>
+    <Command code="rm -f ~/.config/autostart/openwren.desktop" />
+    <p>3. The account passwords and the database key in the system keyring.</p>
+    <Command code="secret-tool clear service OpenWren" />
+    <p>
+      <code>secret-tool</code> is in the package <code>libsecret-tools</code> (Debian, Ubuntu) or
+      <code>libsecret</code> (Fedora). Without it, open "Passwords and Keys", search for "OpenWren" and delete the
+      entries. Your mail stays on your mail servers; only the copy on this computer is deleted.
+    </p>
+
+    <h3 id="key">Signing key</h3>
+    <p>
+      The apt and dnf repositories are signed with the OpenWren GPG key. Before you trust the key, compare its
+      fingerprint with the one below.
+    </p>
+    <Command code="8991 7136 148C 9676 F3A5  1B21 4B8A FB6E 4238 18E0" />
+    <p>To show the fingerprint of the key you downloaded:</p>
+    <Command code="gpg --show-keys --with-fingerprint /usr/share/keyrings/openwren.gpg" />
+    <p>More about signing is on the <a href="/security/">security page</a>.</p>
+  </section>
+
+  <section class="os-panel" data-os="macos" id="macos" role="tabpanel" aria-label="macOS">
+    <p class="note">
+      <strong>Preview.</strong> The macOS version is built automatically and has not been tried on many Macs yet. It is
+      not signed with an Apple certificate, so the first start needs the extra step below.
+    </p>
+    <p>
+      <a class="button" href={`${PREVIEW}/OpenWren-macos-arm64.dmg`}>Download for macOS</a>
+    </p>
+    <p class="muted">For Macs with Apple silicon (M1 or later), macOS 11 or later. Intel Macs are not supported yet.</p>
+
+    <h3>Install</h3>
+    <ol>
+      <li>Open the downloaded file and drag OpenWren into Applications.</li>
+      <li>The first time, right-click OpenWren in Applications and choose Open, then Open again.</li>
+      <li>If macOS says the app is damaged, run this once in Terminal and open it again:</li>
+    </ol>
+    <Command code="xattr -cr /Applications/OpenWren.app" />
+    <p>There are no automatic updates yet: download the new version and replace the old one.</p>
+
+    <h3>Uninstall</h3>
+    <p>Quit OpenWren and drag it from Applications to the Trash. To remove your data as well:</p>
+    <p>1. The downloaded mail, search index, drafts and settings (the encrypted database).</p>
+    <Command code={'rm -rf ~/Library/Application\\ Support/org.openwren.app'} />
+    <p>
+      2. The account passwords and the database key: open Keychain Access, search for "OpenWren" and delete the
+      entries.
+    </p>
+    <p>3. Start at login: System Settings, General, Login Items; remove OpenWren.</p>
+  </section>
+
+  <section class="os-panel" data-os="windows" id="windows" role="tabpanel" aria-label="Windows">
+    <p class="note">
+      <strong>Preview.</strong> The Windows version is built automatically and has not been tried on many PCs yet. It
+      is not signed with a certificate, so Windows shows a warning the first time.
+    </p>
+    <p>
+      <a class="button" href={`${PREVIEW}/OpenWren-windows-x64-setup.exe`}>Download for Windows</a>
+    </p>
+    <p class="muted">For 64-bit Windows 10 and 11.</p>
+
+    <h3>Install</h3>
+    <ol>
+      <li>Run the downloaded file.</li>
+      <li>If Windows shows "Windows protected your PC", choose More info, then Run anyway.</li>
+      <li>Follow the installer. It installs for your user only and needs no administrator rights.</li>
+    </ol>
+    <p>There are no automatic updates yet: download the new version and install it over the old one.</p>
+
+    <h3>Uninstall</h3>
+    <p>Quit OpenWren, then remove it in Settings, Apps, Installed apps. To remove your data as well:</p>
+    <p>1. The downloaded mail, search index, drafts and settings (the encrypted database). In PowerShell:</p>
+    <Command code={'Remove-Item -Recurse -Force "$env:APPDATA\\org.openwren.app"'} />
+    <p>
+      2. The account passwords and the database key: open Credential Manager, Windows Credentials, and remove the
+      entries that start with "OpenWren".
+    </p>
+  </section>
+
+  <p class="muted checks">
+    Checksums of the macOS and Windows files: <a href={`${PREVIEW}/SHA256SUMS`}>SHA256SUMS</a>.
   </p>
-  <Command code="8991 7136 148C 9676 F3A5  1B21 4B8A FB6E 4238 18E0" />
-  <p>To show the fingerprint of the key you downloaded:</p>
-  <Command code="gpg --show-keys --with-fingerprint /usr/share/keyrings/openwren.gpg" />
-  <p>More about signing is on the <a href="/security/">security page</a>.</p>
 
   <h2 id="source">Build from source</h2>
   <p>
     The source code and build instructions are in the <a href={REPO_URL}>repository</a>. You need Node.js with pnpm,
-    Rust, and Tauri's Linux libraries.
+    Rust, and on Linux Tauri's system libraries.
   </p>
 </Base>
+
+<script>
+  // Show one system's instructions at a time: the one in the address (#macos), else the visitor's own.
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>('.os-switch button')];
+  const panels = [...document.querySelectorAll<HTMLElement>('.os-panel')];
+  const names = tabs.map((tab) => tab.dataset.os);
+  function show(os: string, remember = false) {
+    for (const tab of tabs) tab.setAttribute('aria-selected', String(tab.dataset.os === os));
+    for (const panel of panels) panel.hidden = panel.dataset.os !== os;
+    if (remember) history.replaceState(null, '', `#${os}`);
+  }
+  function fromAddress(): string | null {
+    const target = location.hash.slice(1);
+    if (names.includes(target)) return target;
+    // A link to a section inside a panel, such as #apt, opens that panel.
+    const inside = target ? document.getElementById(target)?.closest<HTMLElement>('.os-panel') : null;
+    return inside?.dataset.os ?? null;
+  }
+  const agent = navigator.userAgent;
+  const own = /Mac|iPhone|iPad/.test(agent) ? 'macos' : /Windows/.test(agent) ? 'windows' : 'linux';
+  show(fromAddress() ?? own);
+  for (const tab of tabs) tab.addEventListener('click', () => show(tab.dataset.os!, true));
+  addEventListener('hashchange', () => {
+    const os = fromAddress();
+    if (os) show(os);
+  });
+</script>
+
+<style>
+  .os-switch {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    margin: 0.5rem 0 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--code-bg);
+  }
+  .os-switch button {
+    padding: 7px 18px;
+    border: 0;
+    border-radius: 7px;
+    background: none;
+    color: var(--text-2);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .os-switch button:hover {
+    color: var(--text);
+  }
+  .os-switch button[aria-selected='true'] {
+    background: var(--accent);
+    color: #fff;
+  }
+  .os-panel h3 {
+    margin-top: 1.75rem;
+    font-size: 1.15rem;
+  }
+  .os-panel ol {
+    padding-left: 1.25rem;
+  }
+  .checks {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+  }
+</style>

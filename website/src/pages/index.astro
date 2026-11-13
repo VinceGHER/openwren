@@ -6,11 +6,12 @@ import { REPO_URL } from '../site';
 
 <Base>
   <section class="hero">
-    <h1>A modern, free, open-source mail app for Linux that keeps your mail on your computer</h1>
+    <h1>A modern, free, open-source mail app that keeps your mail on your computer</h1>
     <p class="lead">
       OpenWren is a modern desktop mail app for Gmail and any IMAP account. It is fast, it syncs your mail to an
       encrypted database on your own machine, and it talks only to your mail servers.
     </p>
+    <p class="platforms">For Linux, macOS and Windows.</p>
     <div class="actions">
       <a class="button" href="/download/">Download</a>
       <a class="button secondary" href={REPO_URL}>
@@ -165,7 +166,7 @@ import { REPO_URL } from '../site';
 
   <section class="closing">
     <h2>Get OpenWren</h2>
-    <p class="muted">Packages for Debian, Ubuntu and Fedora, and an AppImage for everything else.</p>
+    <p class="muted">For Linux (Debian, Ubuntu, Fedora and an AppImage), macOS and Windows.</p>
     <div class="actions">
       <a class="button" href="/download/">Download</a>
     </div>
@@ -175,6 +176,10 @@ import { REPO_URL } from '../site';
 <style>
   .hero {
     max-width: 760px;
+  }
+  .platforms {
+    margin: 0 0 1rem;
+    font-weight: 600;
   }
   .hero-shot {
     margin-top: 40px;

@@ -227,7 +227,7 @@ export function AddAccount() {
             </label>
             <input id="aa-app-password" type="password" value={password} placeholder="abcd efgh ijkl mnop" onChange={(e) => setPassword(e.target.value)} className={fieldBox} autoComplete="off" />
             <p className="mt-2 text-xs text-ink3">
-              It is stored in your system keyring. You can remove it at any time in your Google account.{" "}
+              It is stored in your system's password store. You can remove it at any time in your Google account.{" "}
               <button type="button" className="underline hover:text-ink" onClick={() => (setGoogleWay("oauth"), setError(""))}>
                 Advanced: sign in with Google instead
               </button>
@@ -255,7 +255,7 @@ export function AddAccount() {
             <ServerRow id="aa-out" title="Outgoing server (SMTP)" optional protocol="smtp" value={outgoing} onChange={setOutgoing} />
             {insecure && <p className="mt-2 text-xs text-danger">Without encryption your password and mail travel unprotected. Use this only for a test server on your own computer.</p>}
             <p className="mt-3 text-xs text-ink3">
-              The password is stored in your system keyring, not in OpenWren's files.
+              The password is stored in your system's password store, not in OpenWren's files.
             </p>
           </>
         )}
