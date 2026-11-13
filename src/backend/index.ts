@@ -42,6 +42,17 @@ export interface StatsPreview {
   active: boolean;
 }
 
+/** A newer version of OpenWren, found by the daily check. */
+export interface UpdateAvailable {
+  version: string;
+  /** One line about the release, or empty. */
+  notes: string;
+  /** Who installs it: the system's updates, the app itself, or the user from the download page. */
+  how: "system" | "install" | "download";
+  /** How this copy was installed: "deb", "rpm", "appimage", "dmg", "exe" or "other". */
+  package: string;
+}
+
 type Unsubscribe = () => void;
 
 /** Everything the interface asks of the mail engine. */
@@ -127,6 +138,13 @@ export interface Backend {
   deleteRule(id: number): Promise<void>;
 
   statsPreview(): Promise<StatsPreview>;
+  /** The newer version found by the last check, if any. */
+  updateStatus(): Promise<UpdateAvailable | null>;
+  /** Checks now; null when this version is the newest. */
+  checkUpdate(): Promise<UpdateAvailable | null>;
+  /** Downloads and installs the update, then restarts OpenWren. */
+  installUpdate(): Promise<void>;
+  onUpdate(listener: (update: UpdateAvailable | null) => void): Unsubscribe;
   /** Tells the engine the first message list is on screen (used only for start-up timing). */
   markReady(): Promise<void>;
   getSetting(key: string): Promise<string | null>;
@@ -202,6 +220,10 @@ const tauriBackend: Backend = {
   deleteRule: (id) => invoke("delete_rule", { id }),
 
   statsPreview: () => invoke("stats_preview"),
+  updateStatus: () => invoke("update_status"),
+  checkUpdate: () => invoke("check_update"),
+  installUpdate: () => invoke("install_update"),
+  onUpdate: (listener) => subscribe("update-available", listener),
   markReady: () => invoke("mark_ready"),
   getSetting: (key) => invoke("get_setting", { key }),
   setSetting: (key, value) => invoke("set_setting", { key, value }),

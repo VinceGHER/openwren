@@ -1,4 +1,5 @@
 import {
+  IconArrowUpCircle,
   IconAlertCircle,
   IconArchive,
   IconCircleCheck,
@@ -137,17 +138,36 @@ export function statusText(p: Progress | undefined): string {
   }
 }
 
+/** Shown above the sync line when a newer version exists. Opens Settings, About. */
+function UpdateNotice() {
+  const update = useStore((s) => s.update);
+  const setDialog = useStore((s) => s.setDialog);
+  if (!update) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => setDialog("settings", "about")}
+      title={`OpenWren ${update.version} is available`}
+      className="mt-auto flex w-full flex-none items-center gap-2 rounded-lg bg-brand/10 px-2.5 py-2 text-left text-xs font-medium text-brand hover:bg-brand/15"
+    >
+      <IconArrowUpCircle size={16} stroke={1.8} className="flex-none" />
+      <span className="truncate">Update available: {update.version}</span>
+    </button>
+  );
+}
+
 /** The line at the bottom of the sidebar: what sync is doing. Clicking it syncs now. */
 function SyncStatus() {
   const syncNow = useStore((s) => s.syncNow);
   const progress = useStore((s) => s.progress);
+  const hasUpdate = useStore((s) => s.update !== null);
   const all = Object.values(progress);
   const failed = all.find((p) => p.phase === "error");
   const busy = all.find((p) => p.phase !== "idle" && p.phase !== "error");
   const text = failed ? statusText(failed) : busy ? statusText(busy) : "Up to date";
   const Icon = failed ? IconAlertCircle : busy ? IconRefresh : IconCircleCheck;
   return (
-    <button type="button" onClick={syncNow} title={`${text}. Click to sync now.`} className={`mt-auto flex w-full flex-none items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs hover:bg-hover ${failed ? "text-danger" : "text-ink3"}`}>
+    <button type="button" onClick={syncNow} title={`${text}. Click to sync now.`} className={`flex w-full flex-none items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs hover:bg-hover ${hasUpdate ? "mt-1" : "mt-auto"} ${failed ? "text-danger" : "text-ink3"}`}>
       <Icon size={16} stroke={1.6} className={`flex-none ${busy && !failed ? "animate-spin" : ""}`} />
       <span className="truncate" role="status">
         {text}
@@ -190,6 +210,7 @@ export function FolderPane({ width }: { width: number }) {
           Add account
         </button>
       )}
+      <UpdateNotice />
       <SyncStatus />
     </nav>
   );

@@ -518,4 +518,9 @@ export const sampleBackend: Backend = {
   },
   onProgress: () => () => {},
   onSendFailed: () => () => {},
+  // Add ?update to the address to see the notice in the preview.
+  updateStatus: async () => (location.search.includes("update") ? { version: "9.9.9", notes: "Faster search and a new look for conversations.", how: "system", package: "deb" } : null),
+  checkUpdate: async () => null,
+  installUpdate: async () => {},
+  onUpdate: () => () => {},
 };

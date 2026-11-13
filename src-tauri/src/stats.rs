@@ -89,6 +89,11 @@ pub fn record(conn: &Connection, ping: &Ping, now: DateTime<Utc>) -> Result<()> 
     db::set_setting(conn, "stats_install_week", &ping.iw)
 }
 
+/// How this copy was installed: "deb", "rpm", "appimage", "flatpak", "dmg", "exe" or "other".
+pub fn package_kind() -> String {
+    system().0
+}
+
 /// (package kind, "distribution-version") of this computer, from `/etc/os-release`.
 fn system() -> (String, String) {
     // macOS and Windows have one installer each and no distributions to tell apart.

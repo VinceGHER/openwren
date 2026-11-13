@@ -1,7 +1,9 @@
 name: Release
 
-# A tag such as v0.2.0 builds the packages, publishes a GitHub Release and
-# updates the apt and rpm repositories at packages.openwren.app.
+# A tag such as v0.2.0 builds OpenWren for Linux, Windows and macOS, publishes a
+# GitHub Release, updates the apt and rpm repositories at packages.openwren.app,
+# and publishes the signed update files and latest.json that tell every
+# installed copy a new version exists.
 # Setup (secrets, variables, signing key): docs/packaging.md
 
 on:
@@ -20,7 +22,8 @@ concurrency:
 jobs:
   # Builds the packages. This job runs all third-party build code (npm packages,
   # Rust crates, build scripts), so it gets no secrets and a read-only token.
-  build:
+  build-linux:
+    name: Build for Linux
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -70,20 +73,116 @@ jobs:
              src-tauri/target/release/bundle/appimage/*.AppImage \
              release/
           cd release
-          sha256sum -- *.deb *.rpm *.AppImage > SHA256SUMS
-          cat SHA256SUMS
+          sha256sum -- *.deb *.rpm *.AppImage > SHA256SUMS.linux
+          cat SHA256SUMS.linux
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: packages
+          name: packages-linux
           path: release/
           if-no-files-found: error
           retention-days: 3
 
-  # Signs and publishes what the build job produced. It holds the signing key and
-  # the storage token, and runs only this repository's own scripts.
+  build-windows:
+    name: Build for Windows
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install Rust stable
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      # The encrypted database builds its own OpenSSL, which wants an assembler.
+      - name: Install NASM
+        run: |
+          choco install nasm --no-progress -y
+          echo "C:\\Program Files\\NASM" >> "$GITHUB_PATH"
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm tauri build --bundles nsis -- --locked
+
+      - name: Collect the installer
+        run: |
+          mkdir release
+          cp src-tauri/target/release/bundle/nsis/*-setup.exe release/
+          cd release
+          sha256sum -- *.exe > SHA256SUMS.windows
+          cat SHA256SUMS.windows
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: packages-windows
+          path: release/
+          if-no-files-found: error
+          retention-days: 3
+
+  # One build for all Macs: Apple silicon and Intel in the same app.
+  build-macos:
+    name: Build for macOS
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install Rust stable for both processors
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm tauri build --target universal-apple-darwin --bundles app,dmg -- --locked
+
+      # The .dmg is what people download; the .app.tar.gz is what the in-app updater installs.
+      - name: Collect the disk image and the update archive
+        run: |
+          version=$(jq -r .version src-tauri/tauri.conf.json)
+          bundle=src-tauri/target/universal-apple-darwin/release/bundle
+          mkdir release
+          cp "$bundle"/dmg/*.dmg release/
+          tar -czf "release/OpenWren_${version}_universal.app.tar.gz" -C "$bundle/macos" OpenWren.app
+          cd release
+          shasum -a 256 -- *.dmg *.app.tar.gz > SHA256SUMS.macos
+          cat SHA256SUMS.macos
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: packages-macos
+          path: release/
+          if-no-files-found: error
+          retention-days: 3
+
+  # Signs and publishes what the build jobs produced. It holds the signing keys and
+  # the storage token. It runs this repository's own scripts, plus Tauri's signing
+  # tool at a fixed version to sign the update files.
   publish:
-    needs: build
+    needs: [build-linux, build-windows, build-macos]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -100,11 +199,19 @@ jobs:
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: packages
+          pattern: packages-*
+          merge-multiple: true
           path: release/
 
       - name: Check the packages against their checksums
-        run: cd release && sha256sum --check --strict SHA256SUMS
+        run: |
+          cd release
+          for sums in SHA256SUMS.linux SHA256SUMS.windows SHA256SUMS.macos; do
+            sha256sum --check --strict "$sums"
+          done
+          cat SHA256SUMS.linux SHA256SUMS.windows SHA256SUMS.macos > SHA256SUMS
+          rm SHA256SUMS.linux SHA256SUMS.windows SHA256SUMS.macos
+          cat SHA256SUMS
 
       - name: Import the signing key
         env:
@@ -122,8 +229,10 @@ jobs:
           AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
           R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
         run: |
+          # Only the apt and rpm repositories are needed; earlier releases stay in the bucket untouched.
           mkdir -p site/apt site/rpm
-          aws s3 sync "s3://$R2_BUCKET/" site/ --endpoint-url "$R2_ENDPOINT" --no-progress
+          aws s3 sync "s3://$R2_BUCKET/" site/ --endpoint-url "$R2_ENDPOINT" --no-progress \
+            --exclude "releases/*" --exclude "latest/*" --exclude "preview/*" --exclude "latest.json"
 
       # Every package already in the bucket must come from an earlier release;
       # otherwise the new indexes would vouch for a file someone planted there.
@@ -136,6 +245,32 @@ jobs:
           scripts/make-rpm-repo.sh release site/rpm
           cp site/apt/key.gpg site/apt/key.asc site/
 
+      # Sign what the in-app updater installs. An installed OpenWren refuses any update
+      # whose signature was not made with this key (its public half is in tauri.conf.json).
+      - name: Sign the update files
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        run: |
+          for file in release/*.AppImage release/*-setup.exe release/*.app.tar.gz; do
+            npx --yes @tauri-apps/cli@2.12.4 signer sign "$file" > /dev/null
+            test -s "$file.sig"
+            echo "signed: $(basename "$file")"
+          done
+
+      - name: Lay out this release and the version file
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          mkdir -p "site/releases/$version" site/latest
+          cp release/*.AppImage release/*.exe release/*.dmg release/*.app.tar.gz release/*.sig release/SHA256SUMS "site/releases/$version/"
+          # Addresses that stay the same from release to release, for the download page.
+          cp release/*.AppImage site/latest/OpenWren-linux-x86_64.AppImage
+          cp release/*-setup.exe site/latest/OpenWren-windows-x64-setup.exe
+          cp release/*.dmg site/latest/OpenWren-macos-universal.dmg
+          cp release/SHA256SUMS site/latest/SHA256SUMS
+          scripts/make-update-manifest.sh "$version" release site/latest.json
+          cat site/latest.json
+
       - name: Create the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -143,7 +278,7 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             --title "OpenWren ${GITHUB_REF_NAME#v}" \
             --generate-notes \
-            release/*.deb release/*.rpm release/*.AppImage release/SHA256SUMS
+            release/*.deb release/*.rpm release/*.AppImage release/*.exe release/*.dmg release/SHA256SUMS
 
       - name: Upload the repositories
         env:
@@ -154,10 +289,12 @@ jobs:
           AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
           R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
         run: |
-          # Packages first, indexes last, so an index never names a file that is not there yet.
+          # Packages first, indexes and the version file last, so nothing names a file that is not there yet.
           aws s3 sync site/ "s3://$R2_BUCKET/" --endpoint-url "$R2_ENDPOINT" --no-progress \
-            --exclude "apt/dists/*" --exclude "rpm/repodata/*"
+            --exclude "apt/dists/*" --exclude "rpm/repodata/*" --exclude "latest.json"
           aws s3 sync site/apt/dists/ "s3://$R2_BUCKET/apt/dists/" --endpoint-url "$R2_ENDPOINT" --no-progress \
             --cache-control "max-age=300"
           aws s3 sync site/rpm/repodata/ "s3://$R2_BUCKET/rpm/repodata/" --endpoint-url "$R2_ENDPOINT" --no-progress \
             --cache-control "max-age=300" --delete
+          aws s3 cp site/latest.json "s3://$R2_BUCKET/latest.json" --endpoint-url "$R2_ENDPOINT" --no-progress \
+            --cache-control "max-age=300" --content-type "application/json"

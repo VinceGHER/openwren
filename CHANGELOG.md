@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4
+
+- OpenWren tells you when a new version is out, in the sidebar and in Settings, About.
+- On Windows, macOS and the AppImage it installs the update for you, after checking its signature.
+- Windows and macOS versions are part of every release; the macOS one runs on Apple silicon and Intel.
+- A file attached to a message you are writing opens with a click on its name.
+
 ## 0.1.3
 
 - The anonymous daily usage request is sent within 30 seconds of starting, not after several minutes.

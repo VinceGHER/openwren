@@ -15,6 +15,7 @@ pub mod smtp;
 pub mod stats;
 pub mod store;
 pub mod sync;
+pub mod updates;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -110,6 +111,8 @@ pub struct AppState {
     outbox_wake: Notify,
     /// True once the tray icon exists, so the window may hide there instead of quitting.
     tray: std::sync::atomic::AtomicBool,
+    /// A newer version, once the daily check has found one.
+    update: Mutex<Option<updates::Available>>,
     /// Google access tokens per account, with their expiry (Unix seconds).
     tokens: Mutex<HashMap<i64, (String, i64)>>,
 }
@@ -913,6 +916,7 @@ async fn outbox_worker(app: AppHandle) {
         tokio::select! { _ = tokio::time::sleep(Duration::from_secs(1)) => {}, _ = state.outbox_wake.notified() => {} }
         remove_old_opened_attachments(&app);
         count_usage(&app);
+        look_for_update(&app, false);
         if let Ok(accounts) = db::wake_snoozed(&db::lock(&state.db), now()) {
             for account in accounts {
                 let _ = app.emit("mail-changed", account);
@@ -1260,6 +1264,65 @@ fn count_usage(app: &AppHandle) {
     });
 }
 
+/// Look for a newer version: shortly after starting, then every six hours. Off when the
+/// user switched the check off, and in development builds. `now` skips the timetable.
+fn look_for_update(app: &AppHandle, forced: bool) {
+    static NEXT_TRY: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(0);
+    use std::sync::atomic::Ordering::Relaxed;
+    if !forced {
+        if NEXT_TRY.load(Relaxed) == 0 {
+            NEXT_TRY.store(now() + 45, Relaxed);
+        }
+        if now() < NEXT_TRY.load(Relaxed) {
+            return;
+        }
+        let wanted = db::get_setting(&db::lock(&app.state::<AppState>().db), "update_check").ok().flatten().as_deref() != Some("off");
+        if !wanted || cfg!(debug_assertions) {
+            NEXT_TRY.store(now() + 3600, Relaxed);
+            return;
+        }
+    }
+    NEXT_TRY.store(now() + 6 * 3600, Relaxed);
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let _ = find_update(&app).await;
+    });
+}
+
+/// Ask the server, remember the answer and tell the interface.
+async fn find_update(app: &AppHandle) -> Result<Option<updates::Available>> {
+    let found = updates::check(&app.package_info().version.to_string()).await?;
+    *app.state::<AppState>().update.lock().unwrap_or_else(|e| e.into_inner()) = found.clone();
+    let _ = app.emit("update-available", &found);
+    Ok(found)
+}
+
+/// The newer version found by the last check, if any.
+#[tauri::command]
+fn update_status(state: State<'_, AppState>) -> Option<updates::Available> {
+    state.update.lock().unwrap_or_else(|e| e.into_inner()).clone()
+}
+
+/// Check for a newer version now, because the user asked.
+#[tauri::command]
+async fn check_update(app: AppHandle) -> Result<Option<updates::Available>> {
+    find_update(&app).await
+}
+
+/// Download the newer version, check its signature, install it and start it.
+/// Only for installations the app updates itself; apt and dnf do their own.
+#[tauri::command]
+async fn install_update(app: AppHandle) -> Result<()> {
+    use tauri_plugin_updater::UpdaterExt;
+    if updates::how(&stats::package_kind()) != "install" {
+        return Err(Error("This copy of OpenWren is updated by your system, not by the app.".into()));
+    }
+    let failed = |e: tauri_plugin_updater::Error| Error(format!("The update could not be installed: {e}"));
+    let update = app.updater().map_err(failed)?.check().await.map_err(failed)?.ok_or(Error("You already have the newest version.".into()))?;
+    update.download_and_install(|_, _| {}, || {}).await.map_err(failed)?;
+    app.restart()
+}
+
 /// What the usage count would send right now, for showing in Settings.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -1406,6 +1469,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             adopt_old_data(&dir);
@@ -1430,6 +1494,7 @@ pub fn run() {
                 wakers: Default::default(),
                 outbox_wake: Notify::new(),
                 tray: Default::default(),
+                update: Default::default(),
                 tokens: Default::default(),
             });
             match add_tray_icon(app) {
@@ -1511,6 +1576,9 @@ pub fn run() {
             message_source,
             open_link,
             stats_preview,
+            update_status,
+            check_update,
+            install_update,
             mark_ready,
             pick_attachments,
             open_picked_file,

@@ -67,8 +67,8 @@ steps, with copy buttons, are on the [download page](https://openwren.app/downlo
 
 ### Linux
 
-The apt and dnf repositories also deliver updates through your normal system
-updates.
+The apt and dnf repositories deliver updates through your normal system
+updates, and OpenWren tells you when a new version is out.
 
 **Debian, Ubuntu and derivatives**
 
@@ -94,7 +94,7 @@ sudo curl -fsSL -o /etc/yum.repos.d/openwren.repo https://packages.openwren.app/
 sudo dnf install openwren
 ```
 
-**AppImage:** download it from the [latest release](https://github.com/VinceGHER/openwren/releases/latest), make it executable and run it.
+**AppImage:** download [OpenWren-linux-x86_64.AppImage](https://packages.openwren.app/latest/OpenWren-linux-x86_64.AppImage), make it executable and run it. It updates itself from inside the app.
 
 The repositories are signed with the OpenWren key, fingerprint
 `8991 7136 148C 9676 F3A5 1B21 4B8A FB6E 4238 18E0`.
@@ -103,25 +103,24 @@ The repositories are signed with the OpenWren key, fingerprint
 
 For 64-bit Windows 10 and 11. Tested on Windows 11.
 
-1. Download [OpenWren-windows-x64-setup.exe](https://packages.openwren.app/preview/OpenWren-windows-x64-setup.exe) and run it.
+1. Download [OpenWren-windows-x64-setup.exe](https://packages.openwren.app/latest/OpenWren-windows-x64-setup.exe) and run it.
 2. The installer is not signed with a certificate yet, so Windows may show
    "Windows protected your PC": choose **More info**, then **Run anyway**.
 3. Follow the installer. It installs for your user only and needs no
    administrator rights.
 
-There are no automatic updates on Windows yet: download the new version and
-install it over the old one.
+OpenWren tells you when a new version is out and installs it for you.
 
 ### macOS (preview)
 
-For Macs with Apple silicon, macOS 11 or later. This build has not been tried
-on a real Mac yet. Download
-[OpenWren-macos-arm64.dmg](https://packages.openwren.app/preview/OpenWren-macos-arm64.dmg),
+For all Macs, Apple silicon and Intel, with macOS 11 or later. This build has
+not been tried on a real Mac yet. Download
+[OpenWren-macos-universal.dmg](https://packages.openwren.app/latest/OpenWren-macos-universal.dmg),
 drag OpenWren into Applications, then right-click it and choose **Open** the
 first time, because it is not signed with an Apple certificate.
 
 Checksums of the Windows and macOS files:
-[SHA256SUMS](https://packages.openwren.app/preview/SHA256SUMS).
+[SHA256SUMS](https://packages.openwren.app/latest/SHA256SUMS).
 
 ### Build from source
 

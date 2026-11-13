@@ -6,7 +6,7 @@ works the way the Brave browser counts its users. The app sends at most one
 small request a day that carries no identifier, and this service adds one to a
 counter. The requests themselves are never kept.
 
-It will run at `https://stats.openwren.app`.
+It runs at `https://stats.openwren.app`.
 
 ## What is stored, and what is not
 
@@ -20,8 +20,8 @@ The app sends this once a day (`POST /ping`):
 | Field   | Meaning                                                                 |
 |---------|-------------------------------------------------------------------------|
 | `v`     | App version                                                             |
-| `pkg`   | How it was installed: `deb`, `rpm`, `appimage`, `flatpak`, `other`      |
-| `os`    | Distribution and version, such as `ubuntu-24.04`                        |
+| `pkg`   | How it was installed: `deb`, `rpm`, `appimage`, `flatpak`, `dmg` (macOS), `exe` (Windows), `other` |
+| `os`    | Linux distribution and version, such as `ubuntu-24.04`; `macos` or `windows` on those systems |
 | `arch`  | `x86_64` or `aarch64`                                                   |
 | `d`     | This is the sender's first request today                                |
 | `w`     | ... its first this week                                                 |
@@ -53,10 +53,12 @@ Answers `204` when counted. Answers `400` when the body is not valid JSON, is
 larger than 1 KB, or a field is missing or of the wrong type (`v` must look
 like `1.2.3`, `iw` like `2026-W46`, the four flags must be `true`/`false`).
 Unknown extra fields are ignored. An unknown `pkg`, `os` or `arch` is counted
-as `other`. `os` is accepted when it is one of ubuntu, debian, fedora, arch,
-linuxmint, pop, opensuse, opensuse-tumbleweed, opensuse-leap, manjaro, nixos,
-rhel, centos, rocky, almalinux, zorin, elementary, endeavouros, kali,
-optionally followed by `-` and a version of up to 8 digits and dots.
+as `other`. `os` is accepted when it is `macos`, `windows`, or one of the
+Linux distributions ubuntu, debian, fedora, arch, linuxmint, pop, opensuse,
+opensuse-tumbleweed, opensuse-leap, manjaro, nixos, rhel, centos, rocky,
+almalinux, zorin, elementary, endeavouros, kali, optionally followed by `-`
+and a version such as `24.04` (one or two digits, optionally a dot and one or
+two more). `iw` must be a week from 01 to 53, in a year from 2026 to next year.
 
 ### `GET /api/daily?days=N`
 

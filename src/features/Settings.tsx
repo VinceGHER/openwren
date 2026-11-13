@@ -6,7 +6,7 @@ import type { AppInfo, StatsPreview } from "../backend";
 import { RichText } from "../components/RichText";
 import { Button, Chip, IconButton, categories, fieldBox, fieldCaption } from "../components/ui";
 import { TEXT_SIZES, fontChoice } from "../lib/font";
-import { REPOSITORY } from "../lib/links";
+import { REPOSITORY, WEBSITE } from "../lib/links";
 import { pictureFromFile, signatureHtml } from "../lib/signature";
 import { useStore } from "../store";
 import type { SettingsPage } from "../store";
@@ -449,6 +449,8 @@ function Privacy() {
       <p className={note}>A warning appears when your mail server could not confirm the sender, when the sender's name claims to be a company the address does not belong to, when a link shows one site but leads to another, or when an address imitates ordinary letters with look-alike ones from another alphabet.</p>
       <Options label="Company logos for well-known senders" value={settings.brand_logos === "off" ? "off" : "on"} onChange={(v) => void setSetting("brand_logos", v)} options={onOff} />
       <p className={note}>The logos are part of OpenWren, so nothing is looked up online. A logo appears only when the address belongs to that company and your mail server confirmed the sender; while OpenWren is still learning which server that is, or if yours does no such checks, senders keep their initials.</p>
+      <Options label="Look for new versions" value={settings.update_check === "off" ? "off" : "on"} onChange={(v) => void setSetting("update_check", v)} options={onOff} />
+      <p className={note}>A few times a day OpenWren downloads one small public file that says which version is the newest, and tells you when yours is older. The request carries nothing about you or this computer.</p>
       <Options label="Anonymous usage count" value={settings.usage_stats === "off" ? "off" : "on"} onChange={(v) => void setSetting("usage_stats", v)} options={onOff} />
       <p className={note}>
         Once a day OpenWren tells the project that one more copy is in use, so we know how many people rely on it. The request carries no name, address, mail or identifier, and the server keeps only totals.{" "}
@@ -675,6 +677,99 @@ const builtWith: [string, string][] = [
   ["Inter", "https://rsms.me/inter/"],
 ];
 
+/** The command that installs a new version on systems where apt or dnf does it. */
+const SYSTEM_UPDATE: Record<string, string> = {
+  deb: "sudo apt update && sudo apt install --only-upgrade openwren",
+  rpm: "sudo dnf upgrade openwren",
+};
+
+/** Whether a newer version exists, and the way to get it for this kind of installation. */
+function Updates({ version }: { version: string }) {
+  const update = useStore((s) => s.update);
+  const [state, setState] = useState<"idle" | "checking" | "current" | "installing">("idle");
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  async function check() {
+    setState("checking");
+    setError("");
+    try {
+      const found = await backend.checkUpdate();
+      useStore.setState({ update: found });
+      setState(found ? "idle" : "current");
+    } catch (e) {
+      setError(errorText(e));
+      setState("idle");
+    }
+  }
+  async function install() {
+    setState("installing");
+    setError("");
+    try {
+      await backend.installUpdate(); // OpenWren restarts when this succeeds
+    } catch (e) {
+      setError(errorText(e));
+      setState("idle");
+    }
+  }
+
+  if (!update) {
+    return (
+      <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[10px] border border-edge px-3 py-2.5">
+        <span className="text-ink2">{state === "current" ? `Version ${version} is the newest.` : state === "checking" ? "Checking…" : "OpenWren looks for a new version a few times a day."}</span>
+        <Button className="ml-auto h-7" onClick={() => void check()}>
+          Check now
+        </Button>
+        <Problem text={error} />
+      </div>
+    );
+  }
+  const command = SYSTEM_UPDATE[update.package];
+  return (
+    <div className="mt-4 rounded-[10px] border border-brand/40 bg-brand/5 px-3 py-2.5" role="status">
+      <div className="font-semibold">Version {update.version} is available</div>
+      {update.notes && <p className="mt-0.5 text-[13px] text-ink2">{update.notes}</p>}
+      {update.how === "install" && (
+        <div className="mt-2 flex items-center gap-3">
+          <Button variant="primary" onClick={() => void install()}>
+            {state === "installing" ? "Installing…" : "Install and restart"}
+          </Button>
+          <span className="text-[13px] text-ink2">The update is checked against OpenWren's signing key before it is installed.</span>
+        </div>
+      )}
+      {update.how === "system" && command && (
+        <>
+          <p className="mt-1 text-[13px] text-ink2">Your system installs it with its normal updates, or right now with:</p>
+          <div className="mt-1.5 flex items-center gap-2">
+            <code className="selectable min-w-0 flex-1 overflow-x-auto rounded-md bg-canvas px-2 py-1.5 font-mono text-xs whitespace-nowrap">{command}</code>
+            <Button
+              className="h-7 flex-none"
+              onClick={() => {
+                void navigator.clipboard.writeText(command).then(() => setCopied(true));
+                setTimeout(() => setCopied(false), 1500);
+              }}
+            >
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          </div>
+          <p className="mt-1.5 text-xs text-ink3">Then quit OpenWren from the tray and start it again.</p>
+        </>
+      )}
+      {(update.how === "download" || (update.how === "system" && !command)) && (
+        <Button className="mt-2" onClick={() => void backend.openLink(`${WEBSITE}/download/`)}>
+          Open the download page
+        </Button>
+      )}
+      <Problem text={error} />
+      {error && update.how === "install" && (
+        <Button className="mt-2" onClick={() => void backend.openLink(`${WEBSITE}/download/`)}>
+          Open the download page
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function About() {
   const [info, setInfo] = useState<AppInfo | null>(null);
   useEffect(() => {
@@ -695,6 +790,7 @@ function About() {
         </div>
       </div>
       <p className="mt-4">An open-source mail client. Your mail is kept on this computer, encrypted, and in sync with your mail server.</p>
+      <Updates version={info?.version ?? ""} />
       <div className="mt-4 text-[13px]">
         <div className={row}>
           <span className={name}>Licence</span>

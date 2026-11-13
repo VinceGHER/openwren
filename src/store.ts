@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { backend, errorText } from "./backend";
+import type { UpdateAvailable } from "./backend";
 import { longTime, useTwelveHourClock } from "./lib/dates";
 import { cleanMail } from "./lib/privacy";
 import { SIGNATURE_CID, hasPicture, signatureHtml } from "./lib/signature";
@@ -87,6 +88,8 @@ interface State {
   signatureDefaults: SignatureDefaults[];
   /** The desktop's own font, read once at start. */
   systemFont: { family: string; light: boolean };
+  /** A newer version of OpenWren, when the daily check found one. */
+  update: UpdateAvailable | null;
   /** User preferences, as stored (all strings). */
   settings: Record<string, string>;
 
@@ -316,6 +319,7 @@ export const useStore = create<State>((set, get) => {
     signatureDefaults: [],
     settings: {},
     systemFont: { family: "", light: false },
+    update: null,
 
     init: async () => {
       if (started) return; // React's strict mode runs effects twice in development
@@ -326,6 +330,8 @@ export const useStore = create<State>((set, get) => {
         refreshTimer = setTimeout(() => void get().refresh(), 250);
       });
       backend.onProgress((p) => set((s) => ({ progress: { ...s.progress, [p.accountId]: p } })));
+      backend.onUpdate((update) => set({ update }));
+      void backend.updateStatus().then((update) => set({ update })).catch(() => {});
       backend.onSendFailed((f) => get().showToast(`"${f.subject || "(no subject)"}" could not be sent and will be retried. ${f.error}`));
       void backend
         .appInfo()
@@ -355,7 +361,7 @@ export const useStore = create<State>((set, get) => {
     },
 
     loadPreferences: async () => {
-      const keys = ["theme", "density", "body_days", "notifications", "undo_seconds", "google_client_id", "google_client_secret", "block_trackers", "phishing_warnings", "brand_logos", "close_to_tray", "start_at_login", "focused_inbox", "image_senders", "blocked_senders", "font", "text_size", "time_format", "onboarded", "usage_stats", "thread_collapsed"];
+      const keys = ["theme", "density", "body_days", "notifications", "undo_seconds", "google_client_id", "google_client_secret", "block_trackers", "phishing_warnings", "brand_logos", "close_to_tray", "start_at_login", "focused_inbox", "image_senders", "blocked_senders", "font", "text_size", "time_format", "onboarded", "usage_stats", "update_check", "thread_collapsed"];
       const [signatures, signatureDefaults, values] = await Promise.all([
         backend.listSignatures(),
         backend.signatureDefaults(),

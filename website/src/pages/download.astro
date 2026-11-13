@@ -2,9 +2,10 @@
 import Base from '../layouts/Base.astro';
 import Command from '../components/Command.astro';
 import OsIcon from '../components/OsIcon.astro';
-import { REPO_URL, RELEASES_URL } from '../site';
+import { REPO_URL } from '../site';
 
-const PREVIEW = 'https://packages.openwren.app/preview';
+// Addresses that always serve the newest release.
+const LATEST = 'https://packages.openwren.app/latest';
 ---
 
 <Base title="Download" description="Download OpenWren for Linux, macOS or Windows." narrow>
@@ -19,8 +20,8 @@ const PREVIEW = 'https://packages.openwren.app/preview';
 
   <section class="os-panel" data-os="linux" id="linux" role="tabpanel" aria-label="Linux">
     <p>
-      Pick the section for your distribution. The apt and dnf repositories also deliver updates through your normal
-      system updates.
+      Pick the section for your distribution. The apt and dnf repositories deliver updates through your normal system
+      updates, and OpenWren tells you when a new version is out.
     </p>
     <p class="muted">
       <a href="#apt">apt</a> · <a href="#dnf">dnf</a> · <a href="#appimage">AppImage</a> ·
@@ -45,8 +46,9 @@ const PREVIEW = 'https://packages.openwren.app/preview';
 
     <h3 id="appimage">AppImage</h3>
     <p>
-      For any other distribution, download the AppImage from the
-      <a href={RELEASES_URL}>latest release on GitHub</a>, make the file executable and run it.
+      For any other distribution, download the
+      <a href={`${LATEST}/OpenWren-linux-x86_64.AppImage`}>AppImage</a>, make the file executable and run it. It updates
+      itself from inside the app.
     </p>
 
     <h3 id="uninstall">Uninstall</h3>
@@ -86,9 +88,9 @@ const PREVIEW = 'https://packages.openwren.app/preview';
       is not signed with an Apple certificate, so the first start needs the extra step below.
     </p>
     <p>
-      <a class="button" href={`${PREVIEW}/OpenWren-macos-arm64.dmg`}><OsIcon os="macos" /> Download for macOS</a>
+      <a class="button" href={`${LATEST}/OpenWren-macos-universal.dmg`}><OsIcon os="macos" /> Download for macOS</a>
     </p>
-    <p class="muted">For Macs with Apple silicon (M1 or later), macOS 11 or later. Intel Macs are not supported yet.</p>
+    <p class="muted">For all Macs, Apple silicon and Intel, with macOS 11 or later.</p>
 
     <h3>Install</h3>
     <ol>
@@ -97,7 +99,7 @@ const PREVIEW = 'https://packages.openwren.app/preview';
       <li>If macOS says the app is damaged, run this once in Terminal and open it again:</li>
     </ol>
     <Command code="xattr -cr /Applications/OpenWren.app" />
-    <p>There are no automatic updates yet: download the new version and replace the old one.</p>
+    <p>OpenWren tells you when a new version is out and installs it for you.</p>
 
     <h3>Uninstall</h3>
     <p>Quit OpenWren and drag it from Applications to the Trash. To remove your data as well:</p>
@@ -116,7 +118,7 @@ const PREVIEW = 'https://packages.openwren.app/preview';
       warning the first time.
     </p>
     <p>
-      <a class="button" href={`${PREVIEW}/OpenWren-windows-x64-setup.exe`}><OsIcon os="windows" /> Download for Windows</a>
+      <a class="button" href={`${LATEST}/OpenWren-windows-x64-setup.exe`}><OsIcon os="windows" /> Download for Windows</a>
     </p>
     <p class="muted">For 64-bit Windows 10 and 11.</p>
 
@@ -126,7 +128,7 @@ const PREVIEW = 'https://packages.openwren.app/preview';
       <li>If Windows shows "Windows protected your PC", choose More info, then Run anyway.</li>
       <li>Follow the installer. It installs for your user only and needs no administrator rights.</li>
     </ol>
-    <p>There are no automatic updates yet: download the new version and install it over the old one.</p>
+    <p>OpenWren tells you when a new version is out and installs it for you.</p>
 
     <h3>Uninstall</h3>
     <p>Quit OpenWren, then remove it in Settings, Apps, Installed apps. To remove your data as well:</p>
@@ -139,7 +141,7 @@ const PREVIEW = 'https://packages.openwren.app/preview';
   </section>
 
   <p class="muted checks">
-    Checksums of the macOS and Windows files: <a href={`${PREVIEW}/SHA256SUMS`}>SHA256SUMS</a>.
+    Checksums of the AppImage and the macOS and Windows files: <a href={`${LATEST}/SHA256SUMS`}>SHA256SUMS</a>.
   </p>
 
   <h2 id="source">Build from source</h2>

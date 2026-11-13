@@ -5,6 +5,9 @@ const TYPES = {
   deb: "application/vnd.debian.binary-package",
   rpm: "application/x-rpm",
   dmg: "application/x-apple-diskimage",
+  AppImage: "application/vnd.appimage",
+  json: "application/json",
+  sig: "text/plain; charset=utf-8",
   exe: "application/vnd.microsoft.portable-executable",
   gz: "application/gzip",
   xml: "application/xml",
@@ -15,7 +18,8 @@ const TYPES = {
 
 /** Indexes change with every release; package files never change once published. */
 function cacheFor(key) {
-  return /\.(deb|rpm)$/.test(key) ? "public, max-age=31536000, immutable" : "public, max-age=300";
+  // A published release never changes; "latest/" and latest.json point at the newest one.
+  return /\.(deb|rpm)$/.test(key) || key.startsWith("releases/") ? "public, max-age=31536000, immutable" : "public, max-age=300";
 }
 
 const SECURITY = { "Strict-Transport-Security": "max-age=31536000; includeSubDomains", "X-Content-Type-Options": "nosniff" };
@@ -57,7 +61,7 @@ export default {
     headers.set("Accept-Ranges", "bytes");
     headers.set("Cache-Control", cacheFor(key));
     // Installers are saved, never shown in the browser.
-    if (/\.(dmg|exe)$/.test(key)) headers.set("Content-Disposition", `attachment; filename="${key.split("/").pop().replace(/[^\w.-]/g, "_")}"`);
+    if (/\.(dmg|exe|AppImage)$/.test(key)) headers.set("Content-Disposition", `attachment; filename="${key.split("/").pop().replace(/[^\w.-]/g, "_")}"`);
     headers.set("Content-Type", TYPES[key.split(".").pop()] ?? (key.includes("/dists/") || key.endsWith("Release") ? "text/plain; charset=utf-8" : "application/octet-stream"));
 
     // No body means a condition in the request was not met.

@@ -17,8 +17,10 @@ OpenWren keeps your mail on your computer. This page lists every network request
 | Remote images | Only when you click "Show images" on a message | The servers the message points to |
 | Unsubscribe | Only when you confirm that you want to unsubscribe from a mailing | The mailing's sender |
 | Anonymous usage request | Once a day, unless you switch it off | `stats.openwren.app` |
+| Looking for a new version | A few times a day, unless you switch it off | `packages.openwren.app` |
+| Installing an update | Only when you click "Install and restart" (AppImage, Windows, macOS) | `packages.openwren.app` |
 
-There are no others. Sender logos for well-known companies are bundled with the app and are not fetched online.
+There are no others. Looking for a new version downloads one small public file that names the newest version; the request carries nothing about you or your computer, not even the version you have. You can switch it off in Settings, under Privacy. An update the app installs itself must be signed with the OpenWren update key, or it is refused. Sender logos for well-known companies are bundled with the app and are not fetched online.
 
 ## The anonymous usage request
 

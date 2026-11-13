@@ -12,8 +12,12 @@ OpenWren keeps your mail on your computer. There is no OpenWren account and no O
 | Unsubscribe | Only when you confirm "Unsubscribe" on a mailing | The sender's unsubscribe address |
 | Opening a link | When you click one | Your browser opens it |
 | Anonymous usage count | Once a day, unless switched off | `stats.openwren.app` |
+| Looking for a new version | A few times a day, unless switched off | `packages.openwren.app` |
+| Installing an update | Only when you click "Install and restart" (AppImage, Windows, macOS) | `packages.openwren.app` |
 
-Nothing else. No analytics library, no crash reporter, no update check yet.
+Nothing else. No analytics library, no crash reporter.
+
+**Looking for a new version** downloads one small public file, `latest.json`, that says which version is the newest. The request carries nothing about you or your computer: no identifier, not even the version you have. Switch it off in **Settings → Privacy → Look for new versions**. An update the app installs itself must carry a signature made with the OpenWren update key, or it is refused.
 
 ## The anonymous usage count
 
