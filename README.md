@@ -5,7 +5,7 @@
 # OpenWren
 
 A modern, privacy-first mail app that keeps your mail on your computer. Free
-and open source, for Linux, with [macOS and Windows previews](https://openwren.app/download/).
+and open source, for Linux and Windows, with a [macOS preview](https://openwren.app/download/).
 It is built with **Rust** (the engine: sync, search, encryption) and **React**
 (the interface), which makes it small and fast: a 14 MB download that starts in
 about half a second.
@@ -62,8 +62,13 @@ Method, all numbers and how to rerun them: [docs/benchmarks.md](docs/benchmarks.
 
 ## Install
 
-Packages are not published yet. Until the first release, build from source
-(below). After it, these will work:
+OpenWren runs on Linux and Windows, with a first macOS build to try. The same
+steps, with copy buttons, are on the [download page](https://openwren.app/download/).
+
+### Linux
+
+The apt and dnf repositories also deliver updates through your normal system
+updates.
 
 **Debian, Ubuntu and derivatives**
 
@@ -91,9 +96,36 @@ sudo dnf install openwren
 
 **AppImage:** download it from the [latest release](https://github.com/VinceGHER/openwren/releases/latest), make it executable and run it.
 
+The repositories are signed with the OpenWren key, fingerprint
+`8991 7136 148C 9676 F3A5 1B21 4B8A FB6E 4238 18E0`.
+
+### Windows
+
+For 64-bit Windows 10 and 11. Tested on Windows 11.
+
+1. Download [OpenWren-windows-x64-setup.exe](https://packages.openwren.app/preview/OpenWren-windows-x64-setup.exe) and run it.
+2. The installer is not signed with a certificate yet, so Windows may show
+   "Windows protected your PC": choose **More info**, then **Run anyway**.
+3. Follow the installer. It installs for your user only and needs no
+   administrator rights.
+
+There are no automatic updates on Windows yet: download the new version and
+install it over the old one.
+
+### macOS (preview)
+
+For Macs with Apple silicon, macOS 11 or later. This build has not been tried
+on a real Mac yet. Download
+[OpenWren-macos-arm64.dmg](https://packages.openwren.app/preview/OpenWren-macos-arm64.dmg),
+drag OpenWren into Applications, then right-click it and choose **Open** the
+first time, because it is not signed with an Apple certificate.
+
+Checksums of the Windows and macOS files:
+[SHA256SUMS](https://packages.openwren.app/preview/SHA256SUMS).
+
 ### Build from source
 
-You need Node.js 22 or later with pnpm, Rust 1.77 or later, and Tauri's Linux libraries:
+On Linux you need Node.js 22 or later with pnpm, Rust 1.77 or later, and Tauri's Linux libraries:
 
 ```bash
 sudo apt install -y rustc cargo libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev pkg-config
