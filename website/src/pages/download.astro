@@ -2,15 +2,12 @@
 import Base from '../layouts/Base.astro';
 import Command from '../components/Command.astro';
 import OsIcon from '../components/OsIcon.astro';
-import { REPO_URL } from '../site';
-
-// Addresses that always serve the newest release.
-const LATEST = 'https://packages.openwren.app/latest';
+import { REPO_URL, RELEASE_FILES, VERSION } from '../site';
 ---
 
 <Base title="Download" description="Download OpenWren for Linux, macOS or Windows." narrow>
   <h1>Download</h1>
-  <p>OpenWren runs on Linux, macOS and Windows. Choose your system.</p>
+  <p>OpenWren runs on Linux, macOS and Windows. The current version is <strong>{VERSION}</strong>. Choose your system.</p>
 
   <div class="os-switch" role="tablist" aria-label="Your system">
     <button type="button" role="tab" data-os="linux" aria-selected="true"><OsIcon os="linux" /> Linux</button>
@@ -47,7 +44,7 @@ const LATEST = 'https://packages.openwren.app/latest';
     <h3 id="appimage">AppImage</h3>
     <p>
       For any other distribution, download the
-      <a href={`${LATEST}/OpenWren-linux-x86_64.AppImage`}>AppImage</a>, make the file executable and run it. It updates
+      <a href={`${RELEASE_FILES}/openwren_${VERSION}_amd64.AppImage`}>AppImage of version {VERSION}</a>, make the file executable and run it. It updates
       itself from inside the app.
     </p>
 
@@ -88,7 +85,7 @@ const LATEST = 'https://packages.openwren.app/latest';
       is not signed with an Apple certificate, so the first start needs the extra step below.
     </p>
     <p>
-      <a class="button" href={`${LATEST}/OpenWren-macos-universal.dmg`}><OsIcon os="macos" /> Download for macOS</a>
+      <a class="button" href={`${RELEASE_FILES}/OpenWren_${VERSION}_universal.dmg`}><OsIcon os="macos" /> Download {VERSION} for macOS</a>
     </p>
     <p class="muted">For all Macs, Apple silicon and Intel, with macOS 11 or later.</p>
 
@@ -118,7 +115,7 @@ const LATEST = 'https://packages.openwren.app/latest';
       warning the first time.
     </p>
     <p>
-      <a class="button" href={`${LATEST}/OpenWren-windows-x64-setup.exe`}><OsIcon os="windows" /> Download for Windows</a>
+      <a class="button" href={`${RELEASE_FILES}/OpenWren_${VERSION}_x64-setup.exe`}><OsIcon os="windows" /> Download {VERSION} for Windows</a>
     </p>
     <p class="muted">For 64-bit Windows 10 and 11.</p>
 
@@ -141,7 +138,7 @@ const LATEST = 'https://packages.openwren.app/latest';
   </section>
 
   <p class="muted checks">
-    Checksums of the AppImage and the macOS and Windows files: <a href={`${LATEST}/SHA256SUMS`}>SHA256SUMS</a>.
+    Checksums of the AppImage and the macOS and Windows files: <a href={`${RELEASE_FILES}/SHA256SUMS`}>SHA256SUMS</a>.
   </p>
 
   <h2 id="source">Build from source</h2>
