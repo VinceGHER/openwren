@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6
+
+- Unread messages are bold in the list and turn regular once read.
+
 ## 0.1.5
 
 - On macOS, keyboard shortcuts use the Command key, and hints show it.

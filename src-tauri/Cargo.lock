@@ -3119,7 +3119,7 @@ dependencies = [
 
 [[package]]
 name = "openwren"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "ammonia",
  "async-imap",
