@@ -26,7 +26,9 @@ webpki-roots = "1.0.12"
 futures = "0.3.34"
 mail-parser = "0.11.9"
 ammonia = "4.0.3"
-keyring = { version = "3.6.3", features = ["async-secret-service", "tokio", "crypto-rust"] }
+# Passwords live in the system store: the secret service on Linux, the Keychain on macOS,
+# the Credential Manager on Windows.
+keyring = { version = "3.6.3", features = ["async-secret-service", "tokio", "crypto-rust", "apple-native", "windows-native"] }
 chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
 tauri-plugin-opener = "2.5.5"
 lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1", "tokio1-rustls", "rustls", "ring", "webpki-roots"] }
@@ -37,6 +39,10 @@ getrandom = "0.3.4"
 reqwest = { version = "0.13.3", default-features = false, features = ["rustls-no-provider", "form", "json"] }
 tauri-plugin-notification = "2.4.0"
 tauri-plugin-single-instance = "2.4.5"
+
+# Start at login. Linux writes its own autostart entry (src/autostart.rs).
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+tauri-plugin-autostart = "2"
 
 [[bench]]
 name = "engine"

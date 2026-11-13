@@ -1,0 +1,9 @@
+{
+  "productName": "OpenWren",
+  "bundle": {
+    "macOS": {
+      "signingIdentity": "-",
+      "minimumSystemVersion": "11.0"
+    }
+  }
+}

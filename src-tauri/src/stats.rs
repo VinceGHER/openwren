@@ -21,7 +21,7 @@ pub const ENDPOINT: &str = "https://stats.openwren.app/ping";
 pub struct Ping {
     /// App version, such as "0.1.0".
     pub v: String,
-    /// How it was installed: "deb", "rpm", "appimage", "flatpak" or "other".
+    /// How it was installed: "deb", "rpm", "appimage", "flatpak", "dmg" (macOS), "exe" (Windows) or "other".
     pub pkg: String,
     /// Distribution and version, such as "ubuntu-24.04".
     pub os: String,
@@ -91,6 +91,13 @@ pub fn record(conn: &Connection, ping: &Ping, now: DateTime<Utc>) -> Result<()> 
 
 /// (package kind, "distribution-version") of this computer, from `/etc/os-release`.
 fn system() -> (String, String) {
+    // macOS and Windows have one installer each and no distributions to tell apart.
+    if cfg!(target_os = "macos") {
+        return ("dmg".into(), "macos".into());
+    }
+    if cfg!(target_os = "windows") {
+        return ("exe".into(), "windows".into());
+    }
     let release = std::fs::read_to_string("/etc/os-release").unwrap_or_default();
     let exe = std::env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default();
     describe(&release, &exe, std::env::var_os("APPIMAGE").is_some(), std::path::Path::new("/.flatpak-info").exists())

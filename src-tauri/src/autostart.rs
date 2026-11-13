@@ -4,6 +4,10 @@
 //! file there while the "start_at_login" setting is on (the default) and removes
 //! it when the setting is switched off. The entry starts OpenWren with `--hidden`,
 //! so it goes straight to the tray and only announces new mail.
+//!
+//! On macOS and Windows the autostart plugin does the same with a login item or a
+//! registry entry; the code below that writes the Linux file is unused there.
+#![cfg_attr(not(target_os = "linux"), allow(dead_code))]
 
 use std::path::{Path, PathBuf};
 
@@ -54,13 +58,27 @@ fn entry(program: &Path) -> String {
 }
 
 /// Make the autostart entry match the setting. Development builds never register themselves.
-pub fn apply(enabled: bool) {
+#[cfg(target_os = "linux")]
+pub fn apply(_app: &tauri::AppHandle, enabled: bool) {
     if cfg!(debug_assertions) {
         return;
     }
     let Some(path) = entry_path() else { return };
     if let Err(e) = write(&path, enabled) {
         eprintln!("Could not update {}: {e}", path.display());
+    }
+}
+
+/// Make the login item (macOS) or registry entry (Windows) match the setting.
+#[cfg(not(target_os = "linux"))]
+pub fn apply(app: &tauri::AppHandle, enabled: bool) {
+    use tauri_plugin_autostart::ManagerExt;
+    if cfg!(debug_assertions) {
+        return;
+    }
+    let launcher = app.autolaunch();
+    if let Err(e) = if enabled { launcher.enable() } else { launcher.disable() } {
+        eprintln!("Could not update start at login: {e}");
     }
 }
 
@@ -82,7 +100,7 @@ fn write(path: &Path, enabled: bool) -> std::io::Result<()> {
     std::fs::write(path, wanted)
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "linux"))]
 mod tests {
     use super::*;
 

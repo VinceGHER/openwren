@@ -8,12 +8,13 @@ export const MAX_DAYS = 365;
 /** Groups smaller than this are folded into "other" in the breakdowns. */
 export const MIN_GROUP = 5;
 
-const PACKAGES = ["deb", "rpm", "appimage", "flatpak", "other"];
+const PACKAGES = ["deb", "rpm", "appimage", "flatpak", "dmg", "exe", "other"];
 const ARCHES = ["x86_64", "aarch64"];
 const OS_IDS = [
   "ubuntu", "debian", "fedora", "arch", "linuxmint", "pop", "opensuse",
   "opensuse-tumbleweed", "opensuse-leap", "manjaro", "nixos", "rhel", "centos",
   "rocky", "almalinux", "zorin", "elementary", "endeavouros", "kali",
+  "macos", "windows",
 ];
 const OS_PATTERN = new RegExp(`^(?:${OS_IDS.join("|")})(?:-\\d{1,2}(?:\\.\\d{1,2})?)?$`);
 const VERSION_PATTERN = /^\d{1,3}\.\d{1,3}\.\d{1,3}$/;

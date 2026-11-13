@@ -1,0 +1,10 @@
+{
+  "productName": "OpenWren",
+  "bundle": {
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
+}

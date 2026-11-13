@@ -1070,10 +1070,10 @@ fn get_setting(state: State<'_, AppState>, key: String) -> Result<Option<String>
 }
 
 #[tauri::command]
-fn set_setting(state: State<'_, AppState>, key: String, value: String) -> Result<()> {
+fn set_setting(app: AppHandle, state: State<'_, AppState>, key: String, value: String) -> Result<()> {
     db::set_setting(&db::lock(&state.db), &key, &value)?;
     if key == "start_at_login" {
-        autostart::apply(value != "off");
+        autostart::apply(&app, value != "off");
     }
     Ok(())
 }
@@ -1305,7 +1305,9 @@ async fn open_attachment(app: AppHandle, state: State<'_, AppState>, id: i64, in
     tokio::fs::create_dir_all(&dir).await?;
     let path = dir.join(&name);
     tokio::fs::write(&path, data).await.map_err(|e| Error(format!("Could not write the file: {e}")))?;
-    // The copy is not encrypted: keep it readable by this user only.
+    // The copy is not encrypted: keep it readable by this user only. (On Windows the
+    // temporary folder is already private to the user.)
+    #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
         let _ = std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700));
@@ -1380,7 +1382,11 @@ mod tests {
 }
 
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    // Start at login on macOS and Windows; Linux writes its own entry (autostart.rs).
+    #[cfg(not(target_os = "linux"))]
+    let builder = builder.plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec![autostart::HIDDEN])));
+    builder
         // Starting OpenWren again shows the window of the one already running.
         .plugin(tauri_plugin_single_instance::init(|app, _, _| show_window(app)))
         .plugin(tauri_plugin_opener::init())
@@ -1400,7 +1406,7 @@ pub fn run() {
             let conn = store::open(&database, &database_key(&database)?)?;
             let accounts = db::list_accounts(&conn).map_err(|e| e.0)?;
             // Start at login unless switched off; this also follows the program when it moves.
-            autostart::apply(db::get_setting(&conn, "start_at_login").ok().flatten().as_deref() != Some("off"));
+            autostart::apply(app.handle(), db::get_setting(&conn, "start_at_login").ok().flatten().as_deref() != Some("off"));
             for account in &accounts {
                 adopt_old_secret(&account.address);
             }
