@@ -124,36 +124,50 @@ function Signatures() {
   const accounts = useStore((s) => s.accounts);
   const loadPreferences = useStore((s) => s.loadPreferences);
   const [editing, setEditing] = useState<SavedSignature | null>(signatures[0] ?? null);
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? 0);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
-  const current = defaults.find((d) => d.accountId === accountId) ?? { accountId, newId: null, replyId: null };
 
-  /** Accounts that use a signature today, for new mail or for replies. */
-  const usedBy = (id: number) => (id === 0 ? [] : defaults.filter((d) => d.newId === id || d.replyId === id).map((d) => d.accountId));
-  /** A new signature is offered to the accounts that have none yet. */
-  const withoutOne = () => accounts.filter((a) => !defaults.some((d) => d.accountId === a.id && (d.newId !== null || d.replyId !== null))).map((a) => a.id);
-  // Which accounts the signature being edited should be used for; applied on Save.
-  const [useFor, setUseFor] = useState<number[]>(() => (signatures[0] ? usedBy(signatures[0].id) : withoutOne()));
-  const edit = (signature: SavedSignature) => {
-    setEditing(signature);
-    setUseFor(signature.id === 0 ? withoutOne() : usedBy(signature.id));
+  type Use = { fresh: boolean; reply: boolean };
+  const defaultsOf = (accountId: number) => defaults.find((d) => d.accountId === accountId) ?? { accountId, newId: null, replyId: null };
+  // Boxes the user ticked or cleared since the last save; everything else shows what is stored.
+  const [changed, setChanged] = useState<Record<number, Use>>({});
+  /** Whether the signature being edited is used by an account, for new mail and for replies. */
+  const useOf = (accountId: number): Use => {
+    if (changed[accountId]) return changed[accountId];
+    const d = defaultsOf(accountId);
+    // A signature not saved yet is offered to the accounts that have none.
+    if (!editing || editing.id === 0) return { fresh: d.newId === null, reply: d.replyId === null };
+    return { fresh: d.newId === editing.id, reply: d.replyId === editing.id };
+  };
+  const setUse = (accountId: number, part: Partial<Use>) => {
+    setChanged((c) => ({ ...c, [accountId]: { ...useOf(accountId), ...part } }));
     setSaved(false);
   };
+  const edit = (signature: SavedSignature) => {
+    setEditing(signature);
+    setChanged({});
+    setSaved(false);
+  };
+  const nameOf = (id: number | null) => signatures.find((s) => s.id === id)?.name ?? null;
 
   async function save() {
     if (!editing) return;
     try {
       const id = await backend.saveSignature(editing);
-      // Make it the signature of the chosen accounts, and take it away from the others that had it.
+      // Use it where its boxes are ticked, and take it away where they were cleared.
       for (const account of accounts) {
-        const now = defaults.find((d) => d.accountId === account.id) ?? { accountId: account.id, newId: null, replyId: null };
-        const chosen = useFor.includes(account.id);
-        const next = chosen ? { ...now, newId: id, replyId: id } : { ...now, newId: now.newId === id ? null : now.newId, replyId: now.replyId === id ? null : now.replyId };
+        const now = defaultsOf(account.id);
+        const use = useOf(account.id);
+        const next = {
+          ...now,
+          newId: use.fresh ? id : now.newId === editing.id ? null : now.newId,
+          replyId: use.reply ? id : now.replyId === editing.id ? null : now.replyId,
+        };
         if (next.newId !== now.newId || next.replyId !== now.replyId) await backend.setSignatureDefaults(next);
       }
       await loadPreferences();
       setEditing({ ...editing, id });
+      setChanged({});
       setError("");
       setSaved(true);
     } catch (e) {
@@ -170,14 +184,6 @@ function Signatures() {
     else setEditing(null);
   }
 
-  async function setDefault(which: "newId" | "replyId", value: string) {
-    await backend.setSignatureDefaults({ ...current, [which]: value ? Number(value) : null });
-    await loadPreferences();
-  }
-
-  const pick = (
-    <option value="">No signature</option>
-  );
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -200,30 +206,13 @@ function Signatures() {
           <div className="rounded-[10px] border border-edge p-2">
             <RichText key={editing.id} label="Signature" className="h-36" initial={editing.html} onChange={(html) => (setEditing((e) => e && { ...e, html }), setSaved(false))} />
           </div>
-          <div className={`${fieldCaption} mt-3`}>Use for these accounts</div>
-          {accounts.length === 0 ? (
-            <p className="text-[13px] text-ink3">Add an account first.</p>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Accounts that use this signature">
-              {accounts.map((a) => (
-                <Chip
-                  key={a.id}
-                  on={useFor.includes(a.id)}
-                  onClick={() => (setUseFor((ids) => (ids.includes(a.id) ? ids.filter((x) => x !== a.id) : [...ids, a.id])), setSaved(false))}
-                >
-                  {a.address}
-                </Chip>
-              ))}
-            </div>
-          )}
-          <p className="mt-1.5 text-xs text-ink3">Saved as the signature for new mail and for replies from these accounts. Fine-tune under Defaults below.</p>
-          <div className={`${fieldCaption} mt-3`}>Layout</div>
+          <div className={`${fieldCaption} mt-3`}>Picture</div>
           <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Signature layout">
             {(
               [
-                ["text", "Text only"],
-                ["left", "Image left"],
-                ["above", "Image above"],
+                ["text", "No picture"],
+                ["left", "Left of the text"],
+                ["above", "Above the text"],
               ] as const
             ).map(([layout, name]) => (
               <Chip key={layout} on={editing.layout === layout} onClick={() => (setEditing({ ...editing, layout }), setSaved(false))}>
@@ -266,6 +255,36 @@ function Signatures() {
               )}
             </>
           )}
+          <div className={`${fieldCaption} mt-4`}>Add it automatically to</div>
+          {accounts.length === 0 ? (
+            <p className="text-[13px] text-ink3">Add an account first.</p>
+          ) : (
+            <div className="divide-y divide-edge rounded-[10px] border border-edge">
+              {accounts.map((a) => {
+                const use = useOf(a.id);
+                const now = defaultsOf(a.id);
+                // Another signature that this account keeps using where a box is not ticked.
+                const other = [!use.fresh && now.newId !== editing.id && nameOf(now.newId), !use.reply && now.replyId !== editing.id && nameOf(now.replyId)].filter(Boolean);
+                return (
+                  <div key={a.id} className="flex flex-wrap items-center gap-x-5 gap-y-1 px-3 py-2" role="group" aria-label={a.address}>
+                    <div className="min-w-40 flex-1">
+                      <div className="truncate">{a.address}</div>
+                      {other.length > 0 && <div className="text-xs text-ink3">Uses “{[...new Set(other)].join("” and “")}” otherwise</div>}
+                    </div>
+                    <label className="flex items-center gap-1.5 text-[13px]">
+                      <input type="checkbox" className="size-4 accent-brand" checked={use.fresh} onChange={(e) => setUse(a.id, { fresh: e.target.checked })} />
+                      New mail
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[13px]">
+                      <input type="checkbox" className="size-4 accent-brand" checked={use.reply} onChange={(e) => setUse(a.id, { reply: e.target.checked })} />
+                      Replies and forwards
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <p className="mt-1.5 text-xs text-ink3">While writing a message you can still pick another signature, or none.</p>
           <div className="mt-3 flex items-center gap-2">
             <Button variant="primary" onClick={() => void save()}>
               Save
@@ -279,51 +298,6 @@ function Signatures() {
         </>
       )}
 
-      <h3 className="mt-6 mb-2 font-semibold">Defaults</h3>
-      {accounts.length === 0 ? (
-        <p className="text-ink2">Add an account to choose its default signatures.</p>
-      ) : (
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className={fieldCaption} htmlFor="sig-account">
-              Account
-            </label>
-            <select id="sig-account" className={fieldBox} value={accountId} onChange={(e) => setAccountId(Number(e.target.value))}>
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.address}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={fieldCaption} htmlFor="sig-new">
-              New messages
-            </label>
-            <select id="sig-new" className={fieldBox} value={current.newId ?? ""} onChange={(e) => void setDefault("newId", e.target.value)}>
-              {pick}
-              {signatures.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={fieldCaption} htmlFor="sig-reply">
-              Replies and forwards
-            </label>
-            <select id="sig-reply" className={fieldBox} value={current.replyId ?? ""} onChange={(e) => void setDefault("replyId", e.target.value)}>
-              {pick}
-              {signatures.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      )}
     </>
   );
 }
