@@ -1,7 +1,7 @@
 import interFile from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
 import nunitoFile from "@fontsource-variable/nunito/files/nunito-latin-wght-normal.woff2?url";
 import { useMemo, useRef, useState } from "react";
-import { backend } from "../backend";
+import { backend, errorText } from "../backend";
 import { Button } from "../components/ui";
 import { fontChoice, fontStack } from "../lib/font";
 import { useStore } from "../store";
@@ -42,6 +42,29 @@ export function HtmlBody({ html, note, sender }: { html: string; note?: string; 
   const [height, setHeight] = useState(120);
   const hasRemoteImages = /<img[^>]+src=["']?https:/i.test(html);
 
+  // The frame runs no scripts, and in WebKit that also silences click handlers added
+  // from outside. So every link is pointed at a blank page of the app itself, with
+  // the real address after the #; `onLoad` sees the frame arrive there and opens it.
+  const framed = useMemo(() => {
+    const parsed = new DOMParser().parseFromString(html, "text/html");
+    const stop = new URL("link.html", window.location.href).href;
+    for (const link of Array.from(parsed.querySelectorAll("a[href]"))) {
+      const href = link.getAttribute("href") ?? "";
+      link.removeAttribute("target");
+      if (!/^(https?:|mailto:)/i.test(href)) {
+        link.removeAttribute("href");
+        continue;
+      }
+      link.setAttribute("data-href", href);
+      if (!link.getAttribute("title")) link.setAttribute("title", href);
+      link.setAttribute("href", `${stop}#${encodeURIComponent(href)}`);
+    }
+    return parsed.body.innerHTML;
+  }, [html]);
+  /** Bumped to draw the frame afresh after a link took it away. */
+  const [shown, setShown] = useState(0);
+  const showToast = useStore((s) => s.showToast);
+
   const doc = useMemo(() => {
     const img = images ? "data: cid: https:" : "data: cid:";
     const fontUrl = new URL(font === "nunito" ? nunitoFile : interFile, window.location.href).href;
@@ -64,10 +87,24 @@ export function HtmlBody({ html, note, sender }: { html: string; note?: string; 
   img { max-width: 100%; height: auto; }
   a { color: #1a64b0; }
   blockquote { margin: 0 0 0 8px; padding-left: 10px; border-left: 3px solid #e3e6ea; color: #5f6772; }
-</style></head><body>${html}</body></html>`;
-  }, [html, images, font, systemFont, textSize]);
+</style></head><body>${framed}</body></html>`;
+  }, [framed, images, font, systemFont, textSize]);
 
   function onLoad() {
+    // A clicked link takes the frame to link.html#<address> (see `framed` below):
+    // open that address in the browser and show the message again.
+    try {
+      const at = frame.current?.contentWindow?.location;
+      if (at && at.pathname.endsWith("/link.html")) {
+        const target = decodeURIComponent(at.hash.slice(1));
+        if (/^(https?:|mailto:)/i.test(target)) void backend.openLink(target).catch((e) => showToast(errorText(e)));
+        setShown((n) => n + 1);
+        return;
+      }
+    } catch {
+      setShown((n) => n + 1); // the frame went somewhere we cannot read: bring the message back
+      return;
+    }
     const inner = frame.current?.contentDocument;
     if (!inner) return;
     const measure = () => setHeight(inner.documentElement.scrollHeight);
@@ -79,7 +116,8 @@ export function HtmlBody({ html, note, sender }: { html: string; note?: string; 
       if (!link) return;
       e.preventDefault();
       const href = link.getAttribute("href") ?? "";
-      if (/^(https?:|mailto:)/i.test(href)) void backend.openLink(href);
+      const target = link.getAttribute("data-href") ?? href;
+      if (/^(https?:|mailto:)/i.test(target)) void backend.openLink(target).catch((err) => showToast(errorText(err)));
     });
   }
 
@@ -108,6 +146,7 @@ export function HtmlBody({ html, note, sender }: { html: string; note?: string; 
       )}
       {note && <p className="mb-2 px-1 text-xs text-ink3">{note}</p>}
       <iframe
+        key={shown}
         ref={frame}
         title="Message"
         sandbox="allow-same-origin"

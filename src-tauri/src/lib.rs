@@ -1136,6 +1136,18 @@ async fn save_message(app: AppHandle, state: State<'_, AppState>, id: i64, name:
     Ok(true)
 }
 
+/// Open a web or mail address in the system's browser or mail handler.
+/// Only http, https and mailto are accepted: the address may come from a message.
+#[tauri::command]
+fn open_link(app: AppHandle, url: String) -> Result<()> {
+    use tauri_plugin_opener::OpenerExt;
+    let parsed = reqwest::Url::parse(url.trim()).map_err(|_| Error("That link is not a valid address.".into()))?;
+    if !matches!(parsed.scheme(), "http" | "https" | "mailto") {
+        return Err(Error(format!("OpenWren does not open \"{}\" links.", parsed.scheme())));
+    }
+    app.opener().open_url(parsed.as_str(), None::<&str>).map_err(|e| Error(format!("Could not open the browser: {e}")))
+}
+
 /// The complete message as it arrived, headers included, for technical inspection.
 /// Very long messages are cut; "Save as file" gives all of it.
 #[tauri::command]
@@ -1394,6 +1406,7 @@ pub fn run() {
             set_sender_focus,
             save_attachment,
             message_source,
+            open_link,
             stats_preview,
             mark_ready,
             pick_attachments,

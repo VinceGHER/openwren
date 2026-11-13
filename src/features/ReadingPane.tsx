@@ -8,6 +8,7 @@ import {
   IconClock,
   IconDots,
   IconChevronDown,
+  IconChevronRight,
   IconDeviceFloppy,
   IconExternalLink,
   IconFileText,
@@ -151,6 +152,35 @@ function QuickReply({ to }: { to: string }) {
   );
 }
 
+/** Plain-text mail, with web addresses turned into links that open in the browser. */
+function PlainText({ text, query }: { text: string; query: string }) {
+  const showToast = useStore((s) => s.showToast);
+  // Split keeps the addresses (odd positions) between the ordinary text (even positions).
+  const parts = text.split(/(https?:\/\/[^\s<>"')\]]+)/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <a
+            key={i}
+            href={part}
+            title={part}
+            className="text-brand underline"
+            onClick={(e) => {
+              e.preventDefault();
+              void backend.openLink(part).catch((err) => showToast(errorText(err)));
+            }}
+          >
+            {part}
+          </a>
+        ) : (
+          <Marked key={i} text={part} query={query} />
+        ),
+      )}
+    </>
+  );
+}
+
 /** One quiet line that says the message is suspicious; "Details" lists why. */
 interface Reason {
   short: string;
@@ -245,6 +275,8 @@ export function ReadingPane() {
   const authServer = useStore((s) => s.accounts.find((a) => a.id === s.detail?.accountId)?.authServer);
   const isDraft = useStore((s) => s.folders.find((f) => f.id === s.detail?.folderId)?.role === "drafts");
   const editDraft = useStore((s) => s.editDraft);
+  const threadHidden = useStore((s) => s.settings.thread_collapsed === "yes");
+  const setSetting = useStore((s) => s.setSetting);
   const cleaned = useMemo(() => (m?.html ? cleanMail(m.html, blockTrackers) : null), [m?.id, m?.html, blockTrackers]);
   const { setFlags, moveMessages, deleteMessages, selectMessage, reply, setDialog, showToast, targets } = useStore.getState();
   const now = useMemo(() => new Date(), [m]);
@@ -391,9 +423,18 @@ export function ReadingPane() {
 
       {/* The whole conversation, oldest first. The list stays put while you move through it. */}
       {thread.length > 1 && (
-        <div className="mb-4 rounded-[10px] bg-canvas p-1.5" aria-label="Conversation">
-          <div className="px-2 py-1 text-xs text-ink2">{thread.length} messages in this conversation</div>
-          {thread.map((t) => (
+        <div className="mb-4 flex-none rounded-[10px] bg-canvas p-1.5" aria-label="Conversation">
+          {/* The arrow folds the list away, which helps with long conversations; the choice is remembered. */}
+          <button
+            type="button"
+            aria-expanded={!threadHidden}
+            onClick={() => void setSetting("thread_collapsed", threadHidden ? "no" : "yes")}
+            className="flex w-full items-center gap-1 rounded-lg px-2 py-1 text-left text-xs text-ink2 hover:bg-hover"
+          >
+            {threadHidden ? <IconChevronRight size={14} /> : <IconChevronDown size={14} />}
+            {thread.length} messages in this conversation
+          </button>
+          {!threadHidden && thread.map((t) => (
             <button
               key={t.id}
               type="button"
@@ -437,7 +478,7 @@ export function ReadingPane() {
         <HtmlBody key={`body-${m.id}`} sender={m.fromAddress} html={cleaned?.html ?? m.html} note={trackerNote(cleaned?.pixels ?? 0, cleaned?.links ?? 0)} />
       ) : (
         <div className="selectable leading-relaxed whitespace-pre-wrap">
-          <Marked text={m.plain} query={query} />
+          <PlainText text={m.plain} query={query} />
         </div>
       )}
 

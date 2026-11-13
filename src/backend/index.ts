@@ -1,6 +1,5 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import type {
   Account,
   Contact,
@@ -204,7 +203,7 @@ const tauriBackend: Backend = {
   getSetting: (key) => invoke("get_setting", { key }),
   setSetting: (key, value) => invoke("set_setting", { key, value }),
 
-  openLink: (url) => openUrl(url),
+  openLink: (url) => invoke("open_link", { url }),
   onChanged: (listener) => subscribe("mail-changed", listener),
   onProgress: (listener) => subscribe("sync-progress", listener),
   onSendFailed: (listener) => subscribe("send-failed", listener),

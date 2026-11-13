@@ -129,10 +129,29 @@ function Signatures() {
   const [saved, setSaved] = useState(false);
   const current = defaults.find((d) => d.accountId === accountId) ?? { accountId, newId: null, replyId: null };
 
+  /** Accounts that use a signature today, for new mail or for replies. */
+  const usedBy = (id: number) => (id === 0 ? [] : defaults.filter((d) => d.newId === id || d.replyId === id).map((d) => d.accountId));
+  /** A new signature is offered to the accounts that have none yet. */
+  const withoutOne = () => accounts.filter((a) => !defaults.some((d) => d.accountId === a.id && (d.newId !== null || d.replyId !== null))).map((a) => a.id);
+  // Which accounts the signature being edited should be used for; applied on Save.
+  const [useFor, setUseFor] = useState<number[]>(() => (signatures[0] ? usedBy(signatures[0].id) : withoutOne()));
+  const edit = (signature: SavedSignature) => {
+    setEditing(signature);
+    setUseFor(signature.id === 0 ? withoutOne() : usedBy(signature.id));
+    setSaved(false);
+  };
+
   async function save() {
     if (!editing) return;
     try {
       const id = await backend.saveSignature(editing);
+      // Make it the signature of the chosen accounts, and take it away from the others that had it.
+      for (const account of accounts) {
+        const now = defaults.find((d) => d.accountId === account.id) ?? { accountId: account.id, newId: null, replyId: null };
+        const chosen = useFor.includes(account.id);
+        const next = chosen ? { ...now, newId: id, replyId: id } : { ...now, newId: now.newId === id ? null : now.newId, replyId: now.replyId === id ? null : now.replyId };
+        if (next.newId !== now.newId || next.replyId !== now.replyId) await backend.setSignatureDefaults(next);
+      }
       await loadPreferences();
       setEditing({ ...editing, id });
       setError("");
@@ -146,7 +165,9 @@ function Signatures() {
     if (!editing) return;
     if (editing.id !== 0) await backend.deleteSignature(editing.id);
     await loadPreferences();
-    setEditing(useStore.getState().signatures[0] ?? null);
+    const first = useStore.getState().signatures[0];
+    if (first) edit(first);
+    else setEditing(null);
   }
 
   async function setDefault(which: "newId" | "replyId", value: string) {
@@ -161,11 +182,11 @@ function Signatures() {
     <>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {signatures.map((s) => (
-          <Chip key={s.id} on={editing?.id === s.id} onClick={() => (setEditing(s), setSaved(false))}>
+          <Chip key={s.id} on={editing?.id === s.id} onClick={() => edit(s)}>
             {s.name}
           </Chip>
         ))}
-        <Button variant="ghost" className="h-7 text-brand" onClick={() => (setEditing({ id: 0, name: "", html: "", layout: "text", image: "" }), setSaved(false))}>
+        <Button variant="ghost" className="h-7 text-brand" onClick={() => edit({ id: 0, name: "", html: "", layout: "text", image: "" })}>
           New signature
         </Button>
       </div>
@@ -179,6 +200,23 @@ function Signatures() {
           <div className="rounded-[10px] border border-edge p-2">
             <RichText key={editing.id} label="Signature" className="h-36" initial={editing.html} onChange={(html) => (setEditing((e) => e && { ...e, html }), setSaved(false))} />
           </div>
+          <div className={`${fieldCaption} mt-3`}>Use for these accounts</div>
+          {accounts.length === 0 ? (
+            <p className="text-[13px] text-ink3">Add an account first.</p>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Accounts that use this signature">
+              {accounts.map((a) => (
+                <Chip
+                  key={a.id}
+                  on={useFor.includes(a.id)}
+                  onClick={() => (setUseFor((ids) => (ids.includes(a.id) ? ids.filter((x) => x !== a.id) : [...ids, a.id])), setSaved(false))}
+                >
+                  {a.address}
+                </Chip>
+              ))}
+            </div>
+          )}
+          <p className="mt-1.5 text-xs text-ink3">Saved as the signature for new mail and for replies from these accounts. Fine-tune under Defaults below.</p>
           <div className={`${fieldCaption} mt-3`}>Layout</div>
           <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Signature layout">
             {(
