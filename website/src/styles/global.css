@@ -200,7 +200,9 @@ main {
 /* Buttons */
 
 .button {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 20px;
   border-radius: 8px;
   border: 1px solid var(--accent);
