@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.2
+
+Security fixes from a review before the public release.
+
+- Sender checks: text chosen by the sender can no longer be read as a passed check, and a signature counts only when the sender's own domain made it. Stored results are read again.
+- "Always show images from this sender" applies only when your mail server confirmed the sender.
+- Unsubscribe by mail goes to one address with a short one-line subject and text; a message can no longer choose extra recipients.
+- Attachments open only when they are documents, pictures, sound, video or archives; everything else is saved first.
+- Releases: packages are built without access to the signing key, and the repositories are checked before they are signed again.
+
 ## 0.1.1
 
 - The package is now called `openwren` (0.1.0 was published as `open-wren`), with a proper description and maintainer.

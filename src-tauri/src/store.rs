@@ -18,6 +18,7 @@ const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0005_privacy_drafts_signatures.sql"),
     include_str!("../migrations/0006_trusted_checks_picked_files.sql"),
     include_str!("../migrations/0007_fast_folder_lists.sql"),
+    include_str!("../migrations/0008_stricter_sender_checks.sql"),
 ];
 
 const PLAIN_HEADER: &[u8; 16] = b"SQLite format 3\0";

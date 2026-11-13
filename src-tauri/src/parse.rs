@@ -35,26 +35,8 @@ pub fn header_info(raw: &[u8]) -> (String, String) {
     let named = |name: &'static str| msg.headers_raw().filter(move |(n, _)| n.eq_ignore_ascii_case(name)).map(|(_, v)| v);
 
     // The topmost Authentication-Results header is the one our own mail server added.
-    let mut auth = Vec::new();
-    if let Some(results) = named("Authentication-Results").next() {
-        let results = results.to_ascii_lowercase();
-        // The header starts with the name of the server that did the checking.
-        if let Some(server) = results.split(';').next().and_then(|first| first.split_whitespace().next()).filter(|s| !s.contains('=')) {
-            auth.push(format!("id={server}"));
-        }
-        for method in ["spf", "dkim", "dmarc"] {
-            let prefix = format!("{method}=");
-            let found: Vec<&str> = results
-                .split(';')
-                .filter_map(|part| part.trim().strip_prefix(prefix.as_str()))
-                .filter_map(|rest| rest.split(|c: char| !c.is_ascii_alphabetic()).next())
-                .collect();
-            // Several DKIM signatures: one good one is enough.
-            if let Some(result) = found.iter().find(|r| **r == "pass").or(found.first()) {
-                auth.push(format!("{method}={result}"));
-            }
-        }
-    }
+    let from = msg.from().and_then(|a| a.first()).and_then(|a| a.address()).unwrap_or_default();
+    let auth = named("Authentication-Results").next().map(|results| auth_results(results, from)).unwrap_or_default();
 
     let mut unsubscribe = crate::model::Unsubscribe::default();
     if let Some(list) = named("List-Unsubscribe").next() {
@@ -69,7 +51,7 @@ pub fn header_info(raw: &[u8]) -> (String, String) {
         unsubscribe.one_click = named("List-Unsubscribe-Post").any(|v| v.to_ascii_lowercase().contains("one-click"));
     }
     let unsubscribe = if unsubscribe.kind(true).is_some() { serde_json::to_string(&unsubscribe).unwrap_or_default() } else { String::new() };
-    (auth.join(";"), unsubscribe)
+    (auth, unsubscribe)
 }
 
 fn people(list: Option<&Address>) -> String {
@@ -113,6 +95,98 @@ impl Header {
             .or(self.message_id.as_deref())
             .map(str::to_string)
     }
+}
+
+/// An Authentication-Results header with its comments removed and every quoted
+/// string emptied. Both can hold text chosen by the sender (an envelope address
+/// such as `"x;dmarc=pass"@evil.example`), which must never be read as a result.
+fn without_comments_and_quotes(header: &str) -> String {
+    let mut out = String::with_capacity(header.len());
+    let (mut depth, mut quoted, mut escaped) = (0u32, false, false);
+    for c in header.chars() {
+        if escaped {
+            escaped = false;
+        } else if (quoted || depth > 0) && c == '\\' {
+            escaped = true;
+        } else if quoted {
+            quoted = c != '"';
+        } else if c == '(' {
+            depth += 1;
+        } else if c == ')' && depth > 0 {
+            depth -= 1;
+            out.push(' ');
+        } else if depth == 0 {
+            if c == '"' {
+                quoted = true;
+                out.push_str("\"\"");
+            } else {
+                out.push(c);
+            }
+        }
+    }
+    out
+}
+
+/// True when a DKIM signing domain speaks for the From address: the same domain,
+/// or one is a subdomain of the other (DMARC's relaxed alignment).
+fn aligned(signer: &str, from_domain: &str) -> bool {
+    let (signer, from_domain) = (signer.trim_matches('.'), from_domain.trim_matches('.'));
+    !signer.is_empty()
+        && !from_domain.is_empty()
+        && (signer == from_domain || from_domain.ends_with(&format!(".{signer}")) || signer.ends_with(&format!(".{from_domain}")))
+}
+
+/// The receiving server's checks from one Authentication-Results header (RFC 8601), as
+/// "id=mx.example.com;spf=pass;dkim=pass;dmarc=fail". `from` is the address in From.
+///
+/// SPF and DMARC give one verdict each, so the first is taken. A message can carry
+/// several DKIM signatures: "pass" is reported only when one that passed was made by
+/// the From domain, and "unaligned" when the only good signatures are someone else's.
+fn auth_results(header: &str, from: &str) -> String {
+    let cleaned = without_comments_and_quotes(header).to_ascii_lowercase();
+    let from_domain = from.rsplit('@').next().unwrap_or_default().to_ascii_lowercase();
+    let mut parts = cleaned.split(';');
+    let mut auth = Vec::new();
+    // The header starts with the name of the server that did the checking.
+    if let Some(server) = parts.next().and_then(|first| first.split_whitespace().next()).filter(|s| !s.contains('=')) {
+        auth.push(format!("id={server}"));
+    }
+    let (mut spf, mut dmarc, mut dkim): (Option<&str>, Option<&str>, Option<&str>) = (None, None, None);
+    let mut signed_by_sender = false;
+    for part in parts {
+        let mut words = part.split_whitespace();
+        let Some((method, rest)) = words.next().and_then(|first| first.split_once('=')) else { continue };
+        let verdict = rest.split(|c: char| !c.is_ascii_alphabetic()).next().unwrap_or_default();
+        match method {
+            "spf" => spf = spf.or(Some(verdict)),
+            "dmarc" => dmarc = dmarc.or(Some(verdict)),
+            "dkim" => {
+                if verdict == "pass" {
+                    // header.d names the signing domain; header.i is an address or "@domain" within it.
+                    let signer = words.find_map(|w| w.strip_prefix("header.d=").or_else(|| w.strip_prefix("header.i=").map(|i| i.rsplit('@').next().unwrap_or_default())));
+                    if signer.is_some_and(|signer| aligned(signer, &from_domain)) {
+                        signed_by_sender = true;
+                    }
+                    if dkim != Some("pass") {
+                        dkim = Some("pass");
+                    }
+                } else {
+                    dkim = dkim.or(Some(verdict));
+                }
+            }
+            _ => {}
+        }
+    }
+    let dkim = match dkim {
+        Some("pass") if !signed_by_sender => Some("unaligned"),
+        other => other,
+    };
+    for (method, verdict) in [("spf", spf), ("dkim", dkim), ("dmarc", dmarc)] {
+        if let Some(verdict) = verdict.filter(|v| !v.is_empty()) {
+            auth.push(format!("{method}={verdict}"));
+        }
+    }
+    auth.join(";")
 }
 
 /// True when the account's own mail server (`server`, see `db::auth_server`) confirmed
@@ -294,6 +368,15 @@ List-Unsubscribe-Post: List-Unsubscribe=One-Click\r\nSubject: Deals\r\n\r\nHi";
         assert!(!sender_confirmed("id=forged.example;dmarc=pass", Some("mx.example.com")), "not our server's word");
         assert!(!sender_confirmed("id=mx.example.com;dmarc=pass", None), "our server is not known yet");
         assert!(!sender_confirmed("", Some("mx.example.com")));
+        // Checks the sender cannot talk their way through.
+        let from = "ceo@bank.example";
+        assert_eq!(auth_results(r#"mx.example.com; spf=pass smtp.mailfrom="x;dmarc=pass"@evil.example; dmarc=fail header.from=bank.example"#, from), "id=mx.example.com;spf=pass;dmarc=fail", "quoted text is not a result");
+        assert_eq!(auth_results("mx.example.com; dmarc=fail (was; dmarc=pass) header.from=bank.example; dmarc=pass", from), "id=mx.example.com;dmarc=fail", "comments are skipped and the first verdict stands");
+        assert_eq!(auth_results("mx.example.com; dkim=pass header.d=evil.example", from), "id=mx.example.com;dkim=unaligned", "someone else's signature");
+        assert!(!sender_confirmed("id=mx.example.com;dkim=unaligned", Some("mx.example.com")));
+        assert_eq!(auth_results("mx.example.com; dkim=fail header.d=x.example; dkim=pass header.i=@mail.bank.example", from), "id=mx.example.com;dkim=pass", "a subdomain of the sender signs for it");
+        assert_eq!(auth_results("mx.example.com; dkim=pass header.d=notbank.example", from), "id=mx.example.com;dkim=unaligned");
+        assert_eq!(auth_results("mx.example.com; dkim=pass", from), "id=mx.example.com;dkim=unaligned", "no signing domain given");
         let u: crate::model::Unsubscribe = serde_json::from_str(&h.unsubscribe).unwrap();
         assert_eq!(u.https.as_deref(), Some("https://shop.example/u?id=1"));
         assert_eq!(u.mailto.as_deref(), Some("mailto:leave@shop.example?subject=unsubscribe"));

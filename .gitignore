@@ -8,3 +8,11 @@ stats/.wrangler
 *.log
 .DS_Store
 .claude/
+
+# Never commit secrets: environment files, keys, Cloudflare state.
+.env*
+.dev.vars
+*.asc
+*.key
+*.pem
+.wrangler/

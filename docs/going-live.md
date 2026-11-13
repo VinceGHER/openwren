@@ -30,7 +30,7 @@ Nothing deploys automatically yet: a change to the website goes live only when t
 
 ## Packages
 
-The signing key exists: fingerprint `8991 7136 148C 9676 F3A5 1B21 4B8A FB6E 4238 18E0`, valid until November 2028. Its private part is in the GitHub secret `GPG_PRIVATE_KEY` and in `~/.local/share/openwren-signing` on the computer that created it. Keep a copy of that folder somewhere safe and offline; without it no later release can be signed with the same key.
+The signing key exists: fingerprint `8991 7136 148C 9676 F3A5 1B21 4B8A FB6E 4238 18E0`, valid until November 2028. Its private part is in the GitHub secret `GPG_PRIVATE_KEY`. Keep one more copy offline, somewhere safe; without it no later release can be signed with the same key.
 
 Version 0.1.0 in the repositories was built by hand on a recent system, so it installs on Ubuntu 24.04 and Fedora but not on Debian 12 or Ubuntu 22.04. The release workflow builds on Ubuntu 22.04 and replaces it.
 

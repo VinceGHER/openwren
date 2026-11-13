@@ -15,9 +15,31 @@ const OS_IDS = [
   "opensuse-tumbleweed", "opensuse-leap", "manjaro", "nixos", "rhel", "centos",
   "rocky", "almalinux", "zorin", "elementary", "endeavouros", "kali",
 ];
-const OS_PATTERN = new RegExp(`^(?:${OS_IDS.join("|")})(?:-[0-9.]{1,8})?$`);
+const OS_PATTERN = new RegExp(`^(?:${OS_IDS.join("|")})(?:-\\d{1,2}(?:\\.\\d{1,2})?)?$`);
 const VERSION_PATTERN = /^\d{1,3}\.\d{1,3}\.\d{1,3}$/;
-const WEEK_PATTERN = /^\d{4}-W\d{2}$/;
+const WEEK_PATTERN = /^(\d{4})-W(\d{2})$/;
+/** The year OpenWren was first released: no installation is older. */
+const FIRST_YEAR = 2026;
+
+/**
+ * At most this many different counter rows are created per day. Real use needs
+ * far fewer; the limit keeps someone who sends made-up versions and dates from
+ * filling the database. Requests past it are counted in "other" rows.
+ */
+export const MAX_ROWS_PER_DAY = 2000;
+
+/** A week that can exist: 01 to 53, from the first release year to next year at most. */
+function plausibleWeek(iw: string, now: Date): boolean {
+  const match = WEEK_PATTERN.exec(iw);
+  if (!match) return false;
+  const [year, week] = [Number(match[1]), Number(match[2])];
+  return year >= FIRST_YEAR && year <= now.getUTCFullYear() + 1 && week >= 1 && week <= 53;
+}
+
+/** The same request with its free-form facts folded away, for days that reached the row limit. */
+export function folded(ping: Ping): Ping {
+  return { ...ping, v: "other", os: "other", iw: "other" };
+}
 
 /** What is counted for one request: the key of a counter row, minus the day. */
 export interface Ping {
@@ -37,7 +59,7 @@ export interface Ping {
  * Unknown package, system and processor values become "other"; unknown extra
  * fields are dropped.
  */
-export function parsePing(body: string): Ping | null {
+export function parsePing(body: string, now: Date = new Date()): Ping | null {
   if (new TextEncoder().encode(body).length > MAX_BODY_BYTES) return null;
   let data: unknown;
   try {
@@ -51,7 +73,7 @@ export function parsePing(body: string): Ping | null {
   if (typeof v !== "string" || !VERSION_PATTERN.test(v)) return null;
   if (typeof pkg !== "string" || typeof os !== "string" || typeof arch !== "string") return null;
   if (typeof d !== "boolean" || typeof w !== "boolean" || typeof m !== "boolean" || typeof first !== "boolean") return null;
-  if (typeof iw !== "string" || !WEEK_PATTERN.test(iw)) return null;
+  if (typeof iw !== "string" || !plausibleWeek(iw, now)) return null;
   return {
     v,
     pkg: PACKAGES.includes(pkg) ? pkg : "other",

@@ -25,7 +25,8 @@ export function imageSenders(setting: string | undefined): string[] {
  * HTTPS. The app's own policy (tauri.conf.json) must allow `img-src https:`
  * for that; the frame's stricter policy is what keeps them blocked by default.
  */
-export function HtmlBody({ html, note, sender }: { html: string; note?: string; sender: string }) {
+/** `confirmed` says the account's mail server confirmed `sender`; only then does "always show images" apply. */
+export function HtmlBody({ html, note, sender, confirmed }: { html: string; note?: string; sender: string; confirmed: boolean }) {
   const frame = useRef<HTMLIFrameElement>(null);
   // Select the stored text and parse it here: a selector must not build a new list on every call.
   const font = useStore((s) => fontChoice(s.settings.font));
@@ -35,7 +36,9 @@ export function HtmlBody({ html, note, sender }: { html: string; note?: string; 
   const trusted = useMemo(() => imageSenders(stored), [stored]);
   const setSetting = useStore((s) => s.setSetting);
   const address = sender.trim().toLowerCase();
-  const always = address !== "" && trusted.includes(address);
+  // A From address is easy to forge. Without the server's confirmation, a mail that only
+  // claims to be from a trusted sender would load its tracking images unasked.
+  const always = confirmed && address !== "" && trusted.includes(address);
   const [once, setOnce] = useState(false);
   const images = once || always;
   const setAlways = (on: boolean) => void setSetting("image_senders", JSON.stringify(on ? [...trusted, address] : trusted.filter((a) => a !== address)));
@@ -129,7 +132,7 @@ export function HtmlBody({ html, note, sender }: { html: string; note?: string; 
           <Button className="ml-auto h-7 flex-none" onClick={() => setOnce(true)}>
             Show images
           </Button>
-          {address && (
+          {address && confirmed && (
             <Button className="h-7 flex-none" onClick={() => setAlways(true)}>
               Always from this sender
             </Button>

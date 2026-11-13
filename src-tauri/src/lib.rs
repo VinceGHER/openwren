@@ -468,6 +468,37 @@ fn is_public(ip: std::net::IpAddr) -> bool {
     }
 }
 
+/// What an unsubscribe-by-mail request may contain: (recipient, subject, text).
+///
+/// The `mailto:` address comes from the message, so its author must not be able to
+/// write a mail in the reader's name: exactly one plain address, no further
+/// recipients, and a short one-line subject and text.
+fn unsubscribe_mail(mailto: &str) -> Option<(String, String, String)> {
+    let target = reqwest::Url::parse(mailto).ok().filter(|u| u.scheme() == "mailto")?;
+    let to = target.path();
+    let (local, domain) = to.split_once('@')?;
+    let plain = |part: &str, extra: &str| !part.is_empty() && part.len() <= 128 && part.chars().all(|c| c.is_ascii_alphanumeric() || extra.contains(c));
+    if !plain(local, "._+-=") || !plain(domain, ".-") || !domain.contains('.') {
+        return None;
+    }
+    let mut subject = None;
+    let mut body = None;
+    for (key, value) in target.query_pairs() {
+        match key.to_ascii_lowercase().as_str() {
+            "subject" => subject = Some(value.into_owned()),
+            "body" => body = Some(value.into_owned()),
+            // to, cc, bcc or any other header: not something an unsubscribe request needs.
+            _ => return None,
+        }
+    }
+    let short = |text: Option<String>, max: usize| {
+        let line: String = text.unwrap_or_default().chars().map(|c| if c.is_control() { ' ' } else { c }).take(max).collect();
+        let line = line.split_whitespace().collect::<Vec<_>>().join(" ");
+        if line.is_empty() { "unsubscribe".to_string() } else { line }
+    };
+    Some((to.to_string(), short(subject, 120), short(body, 200)))
+}
+
 /// Ask a mailing's sender to stop writing. Returns what was done:
 /// "posted" (request sent directly), "mailed" (unsubscribe mail queued) or "opened" (web page opened).
 #[tauri::command]
@@ -494,6 +525,8 @@ async fn unsubscribe(app: AppHandle, state: State<'_, AppState>, id: i64) -> Res
                 .timeout(Duration::from_secs(20))
                 .user_agent("OpenWren")
                 .redirect(reqwest::redirect::Policy::none())
+                // A proxy would look the name up itself and undo the address check above.
+                .no_proxy()
                 .resolve(&host, address)
                 .build()?;
             let response = client
@@ -509,17 +542,14 @@ async fn unsubscribe(app: AppHandle, state: State<'_, AppState>, id: i64) -> Res
             Ok("posted".into())
         }
         (Some("mail"), _, Some(mailto)) => {
-            let target = reqwest::Url::parse(&mailto).map_err(|_| Error("The unsubscribe address in this message is not valid.".into()))?;
-            let field = |name: &str| target.query_pairs().find(|(k, _)| k.eq_ignore_ascii_case(name)).map(|(_, v)| v.to_string());
+            let (to, subject, body) = unsubscribe_mail(&mailto).ok_or(Error("The unsubscribe address in this message is not valid.".into()))?;
             let (address, display_name, _) = db::account_identity(&db::lock(&state.db), account_id)?;
-            let to = target.path().to_string();
-            let subject = field("subject").unwrap_or_else(|| "unsubscribe".into());
             let built = smtp::build(&smtp::Outgoing {
                 from_name: display_name,
                 from_address: address,
                 to: to.clone(),
                 subject: subject.clone(),
-                html: format!("<p>{}</p>", field("body").unwrap_or_else(|| "unsubscribe".into()).replace('&', "&amp;").replace('<', "&lt;")),
+                html: format!("<p>{}</p>", body.replace('&', "&amp;").replace('<', "&lt;")),
                 ..Default::default()
             })?;
             db::queue_outgoing(&db::lock(&state.db), account_id, &built.raw, &built.mail_from, &built.recipients, &to, &subject, now())?;
@@ -1166,9 +1196,16 @@ async fn message_source(state: State<'_, AppState>, id: i64) -> Result<String> {
     Ok(text)
 }
 
-/// File types that run as programs when opened. These can be saved, never opened from a message.
-const RUNNABLE: &[&str] = &[
-    "sh", "bash", "desktop", "run", "bin", "appimage", "deb", "rpm", "exe", "msi", "bat", "cmd", "com", "scr", "ps1", "vbs", "js", "jse", "jar", "py", "pl", "rb", "php", "lnk", "hta", "apk", "dmg", "pkg",
+/// File types OpenWren hands to another program: documents, pictures, sound, video
+/// and archives. The name and content of an attachment are chosen by the sender, so
+/// everything else (programs, scripts, web pages, installers, files without a type)
+/// can only be saved, never opened from here.
+const OPENABLE: &[&str] = &[
+    "pdf", "txt", "csv", "tsv", "md", "log", "rtf", "ics", "vcf", "eml", "epub",
+    "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp",
+    "png", "jpg", "jpeg", "gif", "webp", "bmp", "tif", "tiff", "heic", "avif",
+    "mp3", "wav", "ogg", "oga", "flac", "m4a", "opus", "mp4", "m4v", "mkv", "webm", "mov", "avi",
+    "zip", "tar", "gz", "tgz", "bz2", "xz", "7z", "rar",
 ];
 
 fn opened_attachments_dir(app: &AppHandle) -> Result<std::path::PathBuf> {
@@ -1259,8 +1296,8 @@ async fn open_attachment(app: AppHandle, state: State<'_, AppState>, id: i64, in
     // Only the file name itself: a name from a message must never choose the folder.
     let name = std::path::Path::new(&name).file_name().and_then(|n| n.to_str()).unwrap_or("attachment").to_string();
     let extension = name.rsplit_once('.').map(|(_, e)| e.to_ascii_lowercase()).unwrap_or_default();
-    if RUNNABLE.contains(&extension.as_str()) {
-        return Err(Error(format!("{name} is a program. For your safety OpenWren does not open programs from mail; save it first if you trust the sender.")));
+    if !OPENABLE.contains(&extension.as_str()) {
+        return Err(Error(format!("For your safety OpenWren does not open this kind of file from mail. Save {name} first if you trust the sender.")));
     }
     let raw = fetch_raw(&state, id).await?;
     let data = parse::attachment_bytes(&raw, index).ok_or(Error("That attachment could not be read.".into()))?;
@@ -1268,14 +1305,48 @@ async fn open_attachment(app: AppHandle, state: State<'_, AppState>, id: i64, in
     tokio::fs::create_dir_all(&dir).await?;
     let path = dir.join(&name);
     tokio::fs::write(&path, data).await.map_err(|e| Error(format!("Could not write the file: {e}")))?;
+    // The copy is not encrypted: keep it readable by this user only.
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700));
+        let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600));
+    }
     app.opener().open_path(path.to_string_lossy(), None::<&str>).map_err(|e| Error(format!("No program on this computer opens {name}: {e}")))?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{is_public, parse_desktop_font};
+    use super::{is_public, parse_desktop_font, unsubscribe_mail, OPENABLE};
     use crate::model::{AccountSettings, Security, ServerSettings};
+
+    #[test]
+    fn unsubscribe_mail_cannot_be_turned_into_a_message_of_the_senders_choosing() {
+        let ok = unsubscribe_mail("mailto:leave+42@lists.shop.example?subject=unsubscribe%20news").unwrap();
+        assert_eq!(ok, ("leave+42@lists.shop.example".to_string(), "unsubscribe news".to_string(), "unsubscribe".to_string()));
+        let long = unsubscribe_mail(&format!("mailto:a@b.example?subject=I%20resign%0D%0ABcc:%20x@y.example&body={}", "x".repeat(500))).unwrap();
+        assert_eq!(long.1, "I resign Bcc: x@y.example", "one line");
+        assert_eq!(long.2.len(), 200);
+        for bad in [
+            "mailto:boss@corp.example,hr@corp.example?subject=I%20resign",
+            "mailto:a@b.example?cc=boss@corp.example",
+            "mailto:a@b.example?to=boss@corp.example",
+            "mailto:a%40b.example%2Cboss@corp.example",
+            "mailto:?to=boss@corp.example",
+            "mailto:nobody",
+            "https://shop.example/leave",
+        ] {
+            assert!(unsubscribe_mail(bad).is_none(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn only_documents_and_media_open_from_mail() {
+        for no in ["html", "htm", "svg", "desktop", "sh", "exe", "jar", "js", "flatpakref", "docm", ""] {
+            assert!(!OPENABLE.contains(&no), "{no}");
+        }
+        assert!(OPENABLE.contains(&"pdf") && OPENABLE.contains(&"docx") && OPENABLE.contains(&"png"));
+    }
 
     #[test]
     fn a_gmail_mailbox_is_recognised_however_it_signs_in() {

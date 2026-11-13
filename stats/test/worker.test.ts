@@ -16,8 +16,8 @@ function fakeD1(db: DatabaseSync) {
           return statement;
         },
         async run() {
-          db.prepare(sql).run(...values);
-          return { success: true };
+          const done = db.prepare(sql).run(...values);
+          return { success: true, meta: { changes: Number(done.changes) } };
         },
         async all() {
           return { results: db.prepare(sql).all(...values), success: true };
@@ -32,7 +32,7 @@ let db: DatabaseSync;
 let env: Env;
 beforeEach(() => {
   db = new DatabaseSync(":memory:");
-  db.exec(readFileSync(join(import.meta.dirname, "../migrations/0001_counters.sql"), "utf8"));
+  for (const file of ["0001_counters.sql", "0002_row_limit.sql"]) db.exec(readFileSync(join(import.meta.dirname, "../migrations", file), "utf8"));
   env = { DB: fakeD1(db) as unknown as D1Database };
 });
 
@@ -51,6 +51,32 @@ const post = (body: unknown, now = at("2026-11-13T10:00:00Z"), headers: Record<s
 const get = (path: string, now = at("2026-11-13T10:00:00Z"), headers: Record<string, string> = {}) =>
   handle(new Request(`https://stats.openwren.app${path}`, { headers }), env, now);
 const rows = () => db.prepare("SELECT * FROM counters ORDER BY day, v, os").all() as Record<string, unknown>[];
+
+describe("row limit", () => {
+  it("folds new combinations into other once a day is full, and still counts them", async () => {
+    db.prepare("INSERT INTO day_rows (day, rows) VALUES ('2026-11-13', 2000)").run();
+    expect((await post({ ...good, v: "9.9.9", iw: "2026-W01" })).status).toBe(204);
+    expect((await post({ ...good, v: "8.8.8", iw: "2026-W02" })).status).toBe(204);
+    const stored = rows();
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({ v: "other", os: "other", iw: "other", pkg: "deb", n: 2 });
+  });
+
+  it("counts the rows a day creates", async () => {
+    await post(good);
+    await post(good);
+    await post({ ...good, v: "0.1.1" });
+    expect(db.prepare("SELECT rows FROM day_rows WHERE day = '2026-11-13'").get()).toEqual({ rows: 2 });
+  });
+
+  it("rejects weeks and system versions that cannot exist", async () => {
+    for (const bad of [{ iw: "9999-W99" }, { iw: "2026-W54" }, { iw: "2026-W00" }, { iw: "2019-W10" }, { iw: "2030-W10" }]) {
+      expect((await post({ ...good, ...bad })).status).toBe(400);
+    }
+    await post({ ...good, os: "kali-6.6.6.6" });
+    expect(rows()[0]).toMatchObject({ os: "other" });
+  });
+});
 
 describe("POST /ping", () => {
   it("answers 204 with no body and adds one to a counter", async () => {
@@ -72,7 +98,9 @@ describe("POST /ping", () => {
       { day: "2026-11-13", v: "0.1.0", pkg: "deb", os: "ubuntu-24.04", arch: "x86_64", d: 1, w: 1, m: 0, first: 0, iw: "2026-W46", n: 1 },
     ]);
     const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all();
-    expect(tables).toEqual([{ name: "counters" }]);
+    // The second table holds only a date and how many counter rows that day has.
+    expect(tables).toEqual([{ name: "counters" }, { name: "day_rows" }]);
+    expect(db.prepare("SELECT * FROM day_rows").all()).toEqual([{ day: "2026-11-13", rows: 1 }]);
   });
 
   it("takes the day from the server clock, in UTC", async () => {

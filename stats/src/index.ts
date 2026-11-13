@@ -2,7 +2,7 @@
 // It reads the request body and the Origin header and nothing else, stores
 // only a counter, and never logs.
 
-import { MAX_BODY_BYTES, aggregate, allowedOrigin, parseDays, parsePing, period, utcDay, type CounterRow } from "./counting";
+import { MAX_BODY_BYTES, MAX_ROWS_PER_DAY, aggregate, allowedOrigin, folded, parseDays, parsePing, period, utcDay, type CounterRow, type Ping } from "./counting";
 
 export interface Env {
   DB: D1Database;
@@ -37,22 +37,35 @@ async function readSmallBody(request: Request): Promise<string | null> {
   return new TextDecoder().decode(all);
 }
 
+const KEY = "day = ? AND v = ? AND pkg = ? AND os = ? AND arch = ? AND d = ? AND w = ? AND m = ? AND first = ? AND iw = ?";
+const keyOf = (day: string, p: Ping) => [day, p.v, p.pkg, p.os, p.arch, Number(p.d), Number(p.w), Number(p.m), Number(p.first), p.iw];
+
+/** Add one to the row for this combination; false when the day has no such row yet. */
+async function addToExisting(env: Env, day: string, counted: Ping): Promise<boolean> {
+  const result = await env.DB.prepare(`UPDATE counters SET n = n + 1 WHERE ${KEY}`).bind(...keyOf(day, counted)).run();
+  return (result.meta?.changes ?? 0) > 0;
+}
+
 async function ping(request: Request, env: Env, now: Date): Promise<Response> {
   const body = await readSmallBody(request);
-  const counted = body === null ? null : parsePing(body);
+  const counted = body === null ? null : parsePing(body, now);
   if (!counted) return text(400, "Bad request\n");
+  const day = utcDay(now); // the server's date; the client never supplies one
+  if (await addToExisting(env, day, counted)) return new Response(null, { status: 204 });
+
+  // A combination not seen today. Past the day's row limit it is folded into an "other" row.
+  const { results } = await env.DB.prepare("SELECT rows FROM day_rows WHERE day = ?").bind(day).all<{ rows: number }>();
+  const full = (results[0]?.rows ?? 0) >= MAX_ROWS_PER_DAY;
+  const stored = full ? folded(counted) : counted;
+  if (full && (await addToExisting(env, day, stored))) return new Response(null, { status: 204 });
   await env.DB.prepare(
     `INSERT INTO counters (day, v, pkg, os, arch, d, w, m, first, iw, n)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
      ON CONFLICT (day, v, pkg, os, arch, d, w, m, first, iw) DO UPDATE SET n = n + 1`,
   )
-    .bind(
-      utcDay(now), // the server's date; the client never supplies one
-      counted.v, counted.pkg, counted.os, counted.arch,
-      Number(counted.d), Number(counted.w), Number(counted.m), Number(counted.first),
-      counted.iw,
-    )
+    .bind(...keyOf(day, stored))
     .run();
+  await env.DB.prepare("INSERT INTO day_rows (day, rows) VALUES (?, 1) ON CONFLICT (day) DO UPDATE SET rows = rows + 1").bind(day).run();
   return new Response(null, { status: 204 });
 }
 
@@ -94,6 +107,35 @@ export async function handle(request: Request, env: Env, now: Date = new Date())
   return text(404, "Not found\n");
 }
 
+/** How long the totals may be served from Cloudflare's cache, in seconds. */
+const TOTALS_CACHE_SECONDS = 600;
+
 export default {
-  fetch: (request: Request, env: Env) => handle(request, env),
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+    // Never answer over plain HTTP: send the caller to the same address over HTTPS.
+    if (url.protocol === "http:") {
+      url.protocol = "https:";
+      return new Response(null, { status: 301, headers: { Location: url.toString() } });
+    }
+    // The totals change slowly and reading them scans many rows, so they are cached.
+    // The key holds only the query and the allowed origin, which decides the CORS headers.
+    const cacheable = request.method === "GET" && url.pathname === "/api/daily";
+    const key = new Request(`https://cache.openwren.invalid/daily?days=${url.searchParams.get("days") ?? ""}&origin=${allowedOrigin(request.headers.get("Origin")) ?? ""}`);
+    if (cacheable) {
+      const hit = await caches.default.match(key);
+      if (hit) return hit;
+    }
+    const response = await handle(request, env);
+    const headers = new Headers(response.headers);
+    headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    headers.set("X-Content-Type-Options", "nosniff");
+    const secured = new Response(response.body, { status: response.status, headers });
+    if (cacheable && response.status === 200) {
+      const copy = secured.clone();
+      copy.headers.set("Cache-Control", `public, max-age=${TOTALS_CACHE_SECONDS}`);
+      ctx.waitUntil(caches.default.put(key, copy));
+    }
+    return secured;
+  },
 } satisfies ExportedHandler<Env>;

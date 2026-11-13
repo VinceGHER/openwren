@@ -16,29 +16,52 @@ function cacheFor(key) {
   return /\.(deb|rpm)$/.test(key) ? "public, max-age=31536000, immutable" : "public, max-age=300";
 }
 
+const SECURITY = { "Strict-Transport-Security": "max-age=31536000; includeSubDomains", "X-Content-Type-Options": "nosniff" };
+const plain = (status, message, extra = {}) => new Response(message, { status, headers: { "Content-Type": "text/plain; charset=utf-8", ...SECURITY, ...extra } });
+
 export default {
   async fetch(request, env) {
-    if (request.method !== "GET" && request.method !== "HEAD") {
-      return new Response("Method not allowed\n", { status: 405, headers: { Allow: "GET, HEAD" } });
+    const url = new URL(request.url);
+    // A key or package fetched over plain HTTP could be swapped on the way: always move to HTTPS.
+    if (url.protocol === "http:") {
+      url.protocol = "https:";
+      return new Response(null, { status: 301, headers: { Location: url.toString() } });
     }
-    const key = decodeURIComponent(new URL(request.url).pathname).replace(/^\/+/, "");
-    if (!key || key.endsWith("/")) {
-      return new Response("OpenWren package repositories. See https://openwren.app/download/\n", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
-    }
-    // `range` and `onlyIf` take the request's own headers, so partial and conditional downloads work.
-    const object = await env.BUCKET.get(key, { range: request.headers, onlyIf: request.headers });
-    if (!object) return new Response("Not found\n", { status: 404 });
+    if (request.method !== "GET" && request.method !== "HEAD") return plain(405, "Method not allowed\n", { Allow: "GET, HEAD" });
 
-    const headers = new Headers();
-    object.writeHttpMetadata(headers);
+    let key;
+    try {
+      key = decodeURIComponent(url.pathname).replace(/^\/+/, "");
+    } catch {
+      return plain(400, "Bad request\n");
+    }
+    if (key.length > 512) return plain(400, "Bad request\n");
+    if (!key || key.endsWith("/")) return plain(200, "OpenWren package repositories. See https://openwren.app/download/\n");
+
+    // One plain byte range is honoured; anything else is answered with the whole file.
+    const wanted = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get("Range") ?? "");
+    const ranged = wanted !== null && (wanted[1] !== "" || wanted[2] !== "");
+    let object;
+    try {
+      object = await env.BUCKET.get(key, { range: ranged ? request.headers : undefined, onlyIf: request.headers });
+    } catch {
+      // R2 refuses a range that lies outside the file.
+      return plain(416, "Range not satisfiable\n");
+    }
+    if (!object) return plain(404, "Not found\n");
+
+    const headers = new Headers(SECURITY);
     headers.set("ETag", object.httpEtag);
     headers.set("Accept-Ranges", "bytes");
     headers.set("Cache-Control", cacheFor(key));
     headers.set("Content-Type", TYPES[key.split(".").pop()] ?? (key.includes("/dists/") || key.endsWith("Release") ? "text/plain; charset=utf-8" : "application/octet-stream"));
 
-    // No body means a condition such as If-None-Match was not met.
-    if (!("body" in object)) return new Response(null, { status: 304, headers });
-    if (request.headers.has("Range") && object.range && "offset" in object.range) {
+    // No body means a condition in the request was not met.
+    if (!("body" in object)) {
+      const failed = request.headers.has("If-Match") || request.headers.has("If-Unmodified-Since");
+      return new Response(null, { status: failed ? 412 : 304, headers });
+    }
+    if (ranged && object.range && "offset" in object.range) {
       const { offset, length } = object.range;
       headers.set("Content-Range", `bytes ${offset}-${offset + length - 1}/${object.size}`);
       headers.set("Content-Length", String(length));

@@ -28,7 +28,7 @@ import { backend, errorText } from "../backend";
 import { Avatar, Button, CategoryDot, IconButton, Marked, Menu, categories } from "../components/ui";
 import type { MenuItem } from "../components/ui";
 import { longTime, shortTime } from "../lib/dates";
-import { authProblem, cleanMail, nameProblem } from "../lib/privacy";
+import { authProblem, cleanMail, nameProblem, senderConfirmed } from "../lib/privacy";
 import { fileSize } from "../lib/search";
 import { useStore } from "../store";
 import { Composer } from "./Composer";
@@ -475,7 +475,7 @@ export function ReadingPane() {
       {m.unsubscribe && !isDraft && <Unsubscribe key={`unsubscribe-${m.id}`} sender={m.fromName} kind={m.unsubscribe} to={m.unsubscribeTo ?? "the sender"} />}
 
       {m.html ? (
-        <HtmlBody key={`body-${m.id}`} sender={m.fromAddress} html={cleaned?.html ?? m.html} note={trackerNote(cleaned?.pixels ?? 0, cleaned?.links ?? 0)} />
+        <HtmlBody key={`body-${m.id}`} sender={m.fromAddress} confirmed={senderConfirmed(m.auth, authServer)} html={cleaned?.html ?? m.html} note={trackerNote(cleaned?.pixels ?? 0, cleaned?.links ?? 0)} />
       ) : (
         <div className="selectable leading-relaxed whitespace-pre-wrap">
           <PlainText text={m.plain} query={query} />

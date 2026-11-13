@@ -34,6 +34,11 @@ The app sends this once a day (`POST /ping`):
 requests had exactly that combination. `day` is the server's UTC date. That is
 the whole database (see `migrations/0001_counters.sql`).
 
+A second table, `day_rows`, holds a date and how many counter rows that day has
+(`migrations/0002_row_limit.sql`). A day gets at most 2,000 different rows;
+requests past that are still counted, with their version, system and install
+week folded into "other", so made-up values cannot fill the database.
+
 **Not stored:** no IP address, no user agent, no request headers, no install
 or device id (the app does not have one), no time finer than the day, and no
 copy of any request. Values outside the fixed lists are stored as `other`, so
@@ -102,7 +107,7 @@ Any other path answers `404`; a known path with the wrong method answers `405`.
 - `src/counting.ts`: validation and aggregation, pure functions with no
   Cloudflare dependency.
 - `src/index.ts`: the Worker entry; wires those functions to D1.
-- `migrations/0001_counters.sql`: the one table.
+- `migrations/0001_counters.sql`, `0002_row_limit.sql`: the two tables.
 - `test/`: vitest. `counting.test.ts` tests the pure functions;
   `worker.test.ts` runs the Worker entry against Node's built-in SQLite, set up
   from the same migration file.
