@@ -1,4 +1,5 @@
 pub mod actions;
+pub mod autostart;
 pub mod blocked;
 pub mod db;
 pub mod drafts;
@@ -1040,7 +1041,11 @@ fn get_setting(state: State<'_, AppState>, key: String) -> Result<Option<String>
 
 #[tauri::command]
 fn set_setting(state: State<'_, AppState>, key: String, value: String) -> Result<()> {
-    db::set_setting(&db::lock(&state.db), &key, &value)
+    db::set_setting(&db::lock(&state.db), &key, &value)?;
+    if key == "start_at_login" {
+        autostart::apply(value != "off");
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -1323,6 +1328,8 @@ pub fn run() {
             let database = dir.join(DATABASE);
             let conn = store::open(&database, &database_key(&database)?)?;
             let accounts = db::list_accounts(&conn).map_err(|e| e.0)?;
+            // Start at login unless switched off; this also follows the program when it moves.
+            autostart::apply(db::get_setting(&conn, "start_at_login").ok().flatten().as_deref() != Some("off"));
             for account in &accounts {
                 adopt_old_secret(&account.address);
             }
@@ -1337,6 +1344,11 @@ pub fn run() {
             match add_tray_icon(app) {
                 Ok(()) => app.state::<AppState>().tray.store(true, std::sync::atomic::Ordering::Relaxed),
                 Err(e) => eprintln!("No tray icon: {e}"), // the app works without one; closing the window then quits
+            }
+            // Started at login: stay in the tray. Without a tray there would be no way back, so show the window.
+            let hidden = std::env::args().any(|arg| arg == autostart::HIDDEN) && app.state::<AppState>().tray.load(std::sync::atomic::Ordering::Relaxed);
+            if !hidden {
+                show_window(app.handle());
             }
             tauri::async_runtime::spawn(outbox_worker(app.handle().clone()));
             for account in accounts {

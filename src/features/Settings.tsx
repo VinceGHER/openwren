@@ -654,6 +654,15 @@ function Notifications() {
           ["off", "Quit OpenWren"],
         ]}
       />
+      <Options
+        label="When you log in to this computer"
+        value={settings.start_at_login === "off" ? "off" : "on"}
+        onChange={(v) => void setSetting("start_at_login", v)}
+        options={[
+          ["on", "Start OpenWren in the tray"],
+          ["off", "Do not start OpenWren"],
+        ]}
+      />
       <p className="text-[13px] text-ink2">Notifications appear only while OpenWren is running. In the tray it keeps checking for mail; use the tray icon to open it again or to quit.</p>
     </>
   );
