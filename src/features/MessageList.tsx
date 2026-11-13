@@ -60,13 +60,14 @@ function Row({ m, now, query, onMenu }: { m: MessageSummary; now: Date; query: s
       // Pointing at a message gets it ready, so the click shows it at once.
       onMouseEnter={() => prefetch(m.id)}
       style={{ paddingTop: "var(--row-pad)", paddingBottom: "var(--row-pad)" }}
-      // Rows run edge to edge and are divided by hairlines; unread mail is marked by a dot and a blue time, not by bold.
+      // Rows run edge to edge and are divided by hairlines. Unread mail is bold, with a dot and a blue time;
+      // once read, the sender and subject drop to regular weight and the subject turns grey.
       className={`flex cursor-default gap-3 border-b border-edge px-4 ${open || ticked ? "bg-sel" : "hover:bg-hover"}`}
     >
       <Avatar name={m.fromName} address={m.fromAddress} auth={m.auth} accountId={m.accountId} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="truncate text-ink">
+          <span className={`truncate text-ink ${m.unread ? "font-semibold" : ""}`}>
             <Marked text={m.fromName} query={query} />
           </span>
           {suspicious && (
@@ -85,11 +86,11 @@ function Row({ m, now, query, onMenu }: { m: MessageSummary; now: Date; query: s
           </span>
           <span className={`ml-auto flex-none pl-1 text-xs whitespace-nowrap ${m.unread ? "text-brand" : "text-ink3"}`}>{shortTime(date, now)}</span>
         </div>
-        <div className="truncate text-ink">
+        <div className={`truncate ${m.unread ? "font-semibold text-ink" : "text-ink2"}`}>
           <Marked text={m.subject || "(no subject)"} query={query} />
         </div>
         {/* A non-breaking space keeps the row height while the preview is still downloading. */}
-        <div className="truncate text-ink2">{query ? `${m.folderName} · ${m.accountAddress}` : m.preview || " "}</div>
+        <div className={`truncate ${m.unread ? "text-ink2" : "text-ink3"}`}>{query ? `${m.folderName} · ${m.accountAddress}` : m.preview || " "}</div>
       </div>
     </div>
   );
