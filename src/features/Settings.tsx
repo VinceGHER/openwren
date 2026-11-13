@@ -1,5 +1,5 @@
 import { IconBell, IconCloudDownload, IconFilter, IconInfoCircle, IconPalette, IconShieldLock, IconSignature, IconTrash, IconUserCircle, IconX } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import logo from "../../src-tauri/icons/128x128.png";
 import { backend, errorText } from "../backend";
 import type { AppInfo, StatsPreview } from "../backend";
@@ -127,61 +127,85 @@ function Signatures() {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
 
-  type Use = { fresh: boolean; reply: boolean };
   const defaultsOf = (accountId: number) => defaults.find((d) => d.accountId === accountId) ?? { accountId, newId: null, replyId: null };
-  // Boxes the user ticked or cleared since the last save; everything else shows what is stored.
-  const [changed, setChanged] = useState<Record<number, Use>>({});
-  /** Whether the signature being edited is used by an account, for new mail and for replies. */
-  const useOf = (accountId: number): Use => {
-    if (changed[accountId]) return changed[accountId];
-    const d = defaultsOf(accountId);
-    // A signature not saved yet is offered to the accounts that have none.
-    if (!editing || editing.id === 0) return { fresh: d.newId === null, reply: d.replyId === null };
-    return { fresh: d.newId === editing.id, reply: d.replyId === editing.id };
-  };
-  const setUse = (accountId: number, part: Partial<Use>) => {
-    setChanged((c) => ({ ...c, [accountId]: { ...useOf(accountId), ...part } }));
-    setSaved(false);
-  };
-  const edit = (signature: SavedSignature) => {
-    setEditing(signature);
-    setChanged({});
-    setSaved(false);
-  };
   const nameOf = (id: number | null) => signatures.find((s) => s.id === id)?.name ?? null;
 
-  async function save() {
-    if (!editing) return;
-    try {
-      const id = await backend.saveSignature(editing);
-      // Use it where its boxes are ticked, and take it away where they were cleared.
-      for (const account of accounts) {
-        const now = defaultsOf(account.id);
-        const use = useOf(account.id);
-        const next = {
-          ...now,
-          newId: use.fresh ? id : now.newId === editing.id ? null : now.newId,
-          replyId: use.reply ? id : now.replyId === editing.id ? null : now.replyId,
-        };
-        if (next.newId !== now.newId || next.replyId !== now.replyId) await backend.setSignatureDefaults(next);
-      }
+  // ----- saving, automatically -----
+  /** The signature as last edited, and whether that is saved yet. */
+  const latest = useRef(editing);
+  const dirty = useRef(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  /** Writes run one after another. */
+  const writing = useRef(Promise.resolve());
+  const run = (work: () => Promise<void>) => {
+    writing.current = writing.current.then(work).then(
+      () => (setError(""), setSaved(true)),
+      (e) => setError(errorText(e)),
+    );
+    return writing.current;
+  };
+  /** Save now, if anything changed. Uses only refs, so it also works while Settings closes. */
+  const flush = useRef(() => {
+    clearTimeout(timer.current);
+    const signature = latest.current;
+    if (!dirty.current || !signature) return;
+    dirty.current = false;
+    void run(async () => {
+      await backend.saveSignature(signature);
       await loadPreferences();
-      setEditing({ ...editing, id });
-      setChanged({});
-      setError("");
-      setSaved(true);
-    } catch (e) {
-      setError(errorText(e));
-    }
-  }
+    });
+  }).current;
+  useEffect(() => flush, [flush]);
+
+  /** Change the signature being edited; it is saved shortly after the last change. */
+  const change = (part: Partial<SavedSignature>) => {
+    if (!latest.current) return;
+    latest.current = { ...latest.current, ...part };
+    setEditing(latest.current);
+    dirty.current = true;
+    setSaved(false);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(flush, 600);
+  };
+  const edit = (signature: SavedSignature | null) => {
+    flush();
+    latest.current = signature;
+    setEditing(signature);
+    setSaved(false);
+  };
+
+  /** Use the signature for an account's new mail or replies, or stop using it there. */
+  const setUse = (accountId: number, which: "newId" | "replyId", on: boolean) => {
+    const id = editing?.id;
+    if (!id) return;
+    void run(async () => {
+      const now = useStore.getState().signatureDefaults.find((d) => d.accountId === accountId) ?? { accountId, newId: null, replyId: null };
+      await backend.setSignatureDefaults({ ...now, [which]: on ? id : null });
+      await loadPreferences();
+    });
+  };
+
+  /** A new signature exists from the start, so every later change is simply saved. */
+  const add = () => {
+    flush();
+    void run(async () => {
+      const fresh: SavedSignature = { id: 0, name: "New signature", html: "", layout: "text", image: "" };
+      const id = await backend.saveSignature(fresh);
+      await loadPreferences();
+      latest.current = { ...fresh, id };
+      setEditing(latest.current);
+    });
+  };
 
   async function remove() {
     if (!editing) return;
-    if (editing.id !== 0) await backend.deleteSignature(editing.id);
-    await loadPreferences();
-    const first = useStore.getState().signatures[0];
-    if (first) edit(first);
-    else setEditing(null);
+    clearTimeout(timer.current);
+    dirty.current = false;
+    await run(async () => {
+      await backend.deleteSignature(editing.id);
+      await loadPreferences();
+    });
+    edit(useStore.getState().signatures[0] ?? null);
   }
 
   return (
@@ -192,7 +216,7 @@ function Signatures() {
             {s.name}
           </Chip>
         ))}
-        <Button variant="ghost" className="h-7 text-brand" onClick={() => edit({ id: 0, name: "", html: "", layout: "text", image: "" })}>
+        <Button variant="ghost" className="h-7 text-brand" onClick={add}>
           New signature
         </Button>
       </div>
@@ -201,10 +225,10 @@ function Signatures() {
           <label className={fieldCaption} htmlFor="sig-name">
             Name
           </label>
-          <input id="sig-name" className={fieldBox} value={editing.name} placeholder="Work" onChange={(e) => (setEditing({ ...editing, name: e.target.value }), setSaved(false))} />
+          <input id="sig-name" className={fieldBox} value={editing.name} placeholder="Work" onChange={(e) => change({ name: e.target.value })} />
           <div className={`${fieldCaption} mt-3`}>Signature</div>
           <div className="rounded-[10px] border border-edge p-2">
-            <RichText key={editing.id} label="Signature" className="h-36" initial={editing.html} onChange={(html) => (setEditing((e) => e && { ...e, html }), setSaved(false))} />
+            <RichText key={editing.id} label="Signature" className="h-36" initial={editing.html} onChange={(html) => html !== latest.current?.html && change({ html })} />
           </div>
           <div className={`${fieldCaption} mt-3`}>Picture</div>
           <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Signature layout">
@@ -215,7 +239,7 @@ function Signatures() {
                 ["above", "Above the text"],
               ] as const
             ).map(([layout, name]) => (
-              <Chip key={layout} on={editing.layout === layout} onClick={() => (setEditing({ ...editing, layout }), setSaved(false))}>
+              <Chip key={layout} on={editing.layout === layout} onClick={() => change({ layout })}>
                 {name}
               </Chip>
             ))}
@@ -232,13 +256,13 @@ function Signatures() {
                       e.target.value = "";
                       if (!file) return;
                       pictureFromFile(file)
-                        .then((image) => (setEditing((s) => s && { ...s, image }), setSaved(false), setError("")))
+                        .then((image) => change({ image }))
                         .catch(() => setError("That file could not be read as a picture."));
                     }}
                   />
                 </label>
                 {editing.image && (
-                  <Button variant="ghost" className="h-7 text-ink2" onClick={() => (setEditing({ ...editing, image: "" }), setSaved(false))}>
+                  <Button variant="ghost" className="h-7 text-ink2" onClick={() => change({ image: "" })}>
                     Remove image
                   </Button>
                 )}
@@ -261,8 +285,8 @@ function Signatures() {
           ) : (
             <div className="divide-y divide-edge rounded-[10px] border border-edge">
               {accounts.map((a) => {
-                const use = useOf(a.id);
                 const now = defaultsOf(a.id);
+                const use = { fresh: now.newId === editing.id, reply: now.replyId === editing.id };
                 // Another signature that this account keeps using where a box is not ticked.
                 const other = [!use.fresh && now.newId !== editing.id && nameOf(now.newId), !use.reply && now.replyId !== editing.id && nameOf(now.replyId)].filter(Boolean);
                 return (
@@ -272,11 +296,11 @@ function Signatures() {
                       {other.length > 0 && <div className="text-xs text-ink3">Uses “{[...new Set(other)].join("” and “")}” otherwise</div>}
                     </div>
                     <label className="flex items-center gap-1.5 text-[13px]">
-                      <input type="checkbox" className="size-4 accent-brand" checked={use.fresh} onChange={(e) => setUse(a.id, { fresh: e.target.checked })} />
+                      <input type="checkbox" className="size-4 accent-brand" checked={use.fresh} onChange={(e) => setUse(a.id, "newId", e.target.checked)} />
                       New mail
                     </label>
                     <label className="flex items-center gap-1.5 text-[13px]">
-                      <input type="checkbox" className="size-4 accent-brand" checked={use.reply} onChange={(e) => setUse(a.id, { reply: e.target.checked })} />
+                      <input type="checkbox" className="size-4 accent-brand" checked={use.reply} onChange={(e) => setUse(a.id, "replyId", e.target.checked)} />
                       Replies and forwards
                     </label>
                   </div>
@@ -286,10 +310,9 @@ function Signatures() {
           )}
           <p className="mt-1.5 text-xs text-ink3">While writing a message you can still pick another signature, or none.</p>
           <div className="mt-3 flex items-center gap-2">
-            <Button variant="primary" onClick={() => void save()}>
-              Save
-            </Button>
-            {saved && <span className="text-[13px] text-ink2">Saved</span>}
+            <span className="text-[13px] text-ink3" role="status">
+              {saved ? "Saved" : "Changes are saved as you make them."}
+            </span>
             <Button variant="ghost" className="ml-auto text-danger" onClick={() => void remove()}>
               <IconTrash size={16} /> Delete signature
             </Button>

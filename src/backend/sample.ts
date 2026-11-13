@@ -176,7 +176,7 @@ let signatures: SavedSignature[] = [
   { id: 2, name: "Personal", html: "<p>Cheers,<br>Katy</p>", layout: "text", image: "" },
   { id: 3, name: "Short reply", html: "<p>Katy</p>", layout: "text", image: "" },
 ];
-const defaults: SignatureDefaults[] = [
+let defaults: SignatureDefaults[] = [
   { accountId: 1, newId: 2, replyId: 3 },
   { accountId: 2, newId: 1, replyId: 3 },
 ];
@@ -405,9 +405,7 @@ export const sampleBackend: Backend = {
   },
   signatureDefaults: async () => defaults,
   setSignatureDefaults: async (d) => {
-    const i = defaults.findIndex((x) => x.accountId === d.accountId);
-    if (i >= 0) defaults[i] = d;
-    else defaults.push(d);
+    defaults = [...defaults.filter((x) => x.accountId !== d.accountId), d];
   },
 
   listRules: async () => rules,
