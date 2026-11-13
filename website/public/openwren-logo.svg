@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="OpenWren">
+  <rect width="512" height="512" rx="116" fill="#256EF3"/>
+  <g fill="#fff">
+    <path d="M204 296L172 138" stroke="#fff" stroke-width="46" stroke-linecap="round"/>
+    <ellipse cx="266" cy="306" rx="114" ry="90"/>
+    <circle cx="338" cy="236" r="62"/>
+    <path d="M388 212Q438 212 464 234Q430 238 392 248Z"/>
+  </g>
+  <path d="M206 300Q262 362 334 296" fill="none" stroke="#256EF3" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="354" cy="226" r="9" fill="#256EF3"/>
+</svg>

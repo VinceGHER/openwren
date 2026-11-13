@@ -1,0 +1,58 @@
+---
+import Base from '../layouts/Base.astro';
+import Command from '../components/Command.astro';
+import { REPO_URL, RELEASES_URL } from '../site';
+---
+
+<Base title="Download" description="Install OpenWren with apt, dnf or as an AppImage." narrow>
+  <h1>Download</h1>
+  <p>
+    OpenWren runs on Linux. Pick the section for your distribution. The apt and dnf repositories also deliver updates
+    through your normal system updates.
+  </p>
+  <p class="muted">
+    <a href="#apt">apt</a> · <a href="#dnf">dnf</a> · <a href="#appimage">AppImage</a> ·
+    <a href="#source">Build from source</a>
+  </p>
+
+  <h2 id="apt">Debian, Ubuntu and derivatives (apt)</h2>
+  <p>1. Add the signing key.</p>
+  <Command code="curl -fsSL https://packages.openwren.org/key.gpg | sudo tee /usr/share/keyrings/openwren.gpg > /dev/null" />
+  <p>2. Add the repository.</p>
+  <Command
+    code={'echo "deb [signed-by=/usr/share/keyrings/openwren.gpg] https://packages.openwren.org/apt stable main" | sudo tee /etc/apt/sources.list.d/openwren.list'}
+  />
+  <p>3. Install.</p>
+  <Command code="sudo apt update && sudo apt install openwren" />
+
+  <h2 id="dnf">Fedora (dnf)</h2>
+  <p>1. Add the repository.</p>
+  <Command code="sudo dnf config-manager addrepo --from-repofile=https://packages.openwren.org/rpm/openwren.repo" />
+  <p>2. Install.</p>
+  <Command code="sudo dnf install openwren" />
+
+  <h2 id="appimage">AppImage</h2>
+  <p>
+    For any other distribution, download the AppImage from the
+    <a href={RELEASES_URL}>latest release on GitHub</a>, make the file executable and run it.
+  </p>
+
+  <h2 id="key">Signing key</h2>
+  <p>
+    The apt and dnf repositories are signed with the OpenWren GPG key. Before you trust the key, compare its
+    fingerprint with the one below.
+  </p>
+  <div class="note placeholder">
+    <strong>Placeholder</strong>
+    <code>TODO: signing-key fingerprint. Replace this before publishing.</code>
+  </div>
+  <p>To show the fingerprint of the key you downloaded:</p>
+  <Command code="gpg --show-keys --with-fingerprint /usr/share/keyrings/openwren.gpg" />
+  <p>More about signing is on the <a href="/security/">security page</a>.</p>
+
+  <h2 id="source">Build from source</h2>
+  <p>
+    The source code and build instructions are in the <a href={REPO_URL}>repository</a>. You need Node.js with pnpm,
+    Rust, and Tauri's Linux libraries.
+  </p>
+</Base>

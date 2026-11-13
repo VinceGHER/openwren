@@ -1,0 +1,27 @@
+name: Audit
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  pull_request:
+    paths: ["src-tauri/Cargo.lock", "pnpm-lock.yaml", "deny.toml"]
+  workflow_dispatch:
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Known vulnerabilities, and licences we cannot ship under Apache-2.0.
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: src-tauri/Cargo.toml
+          command: check advisories licenses
+
+  javascript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - run: pnpm audit --prod

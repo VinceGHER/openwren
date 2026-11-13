@@ -1,0 +1,6 @@
+# Makes stats/ its own pnpm project, separate from the app in the parent folder.
+# esbuild and workerd (both used by wrangler) need their install scripts to
+# fetch the right binary for this computer.
+allowBuilds:
+  esbuild: true
+  workerd: true

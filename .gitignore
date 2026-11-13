@@ -1,0 +1,10 @@
+node_modules
+dist
+src-tauri/target
+src-tauri/gen
+website/dist
+website/.astro
+stats/.wrangler
+*.log
+.DS_Store
+.claude/

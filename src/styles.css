@@ -1,0 +1,196 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/nunito";
+
+/* Design tokens. One accent, #256EF3, with a pale tint of it for fills; warm neutral greys. */
+:root {
+  color-scheme: light;
+  --brand: #256ef3;
+  --soft: #e4edfe;
+  --on-soft: #256ef3;
+  --line: #a9c4fb;
+  --dot: #256ef3;
+  --title: #e4edfe;
+  --on-title: #256ef3;
+  --canvas: #f6f6f3;
+  --card: #ffffff;
+  --sel: #e9f0fe;
+  --hover: #f3f3f0;
+  --text: #1f1f1e;
+  --text2: #5e5d59;
+  --text3: #9a9891;
+  --border: #e8e6e1;
+  --chip: #f0efeb;
+  --mark: #ffe9a8;
+  --danger: #c62828;
+  --warn: #fbe2ac;
+  --warn-line: #f0c36d;
+  --on-warn: #6b4200;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --brand: #7da7ff;
+    --soft: #1c3160;
+    --on-soft: #cfe0ff;
+    --line: #3f6fd6;
+    --dot: #7da7ff;
+    --title: #1c3160;
+    --on-title: #cfe0ff;
+    --canvas: #111318;
+    --card: #1b1e24;
+    --sel: #1b2c52;
+    --hover: #262a31;
+    --text: #eceef1;
+    --text2: #a0a7b1;
+    --text3: #6f7782;
+    --border: #2c3038;
+    --chip: #2a2e36;
+    --mark: #5c4a00;
+    --danger: #ff8a80;
+    --warn: #3a2a0a;
+    --warn-line: #7a5a16;
+    --on-warn: #ffd58a;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --brand: #7da7ff;
+  --soft: #1c3160;
+  --on-soft: #cfe0ff;
+  --line: #3f6fd6;
+  --dot: #7da7ff;
+  --title: #1c3160;
+  --on-title: #cfe0ff;
+  --canvas: #111318;
+  --card: #1b1e24;
+  --sel: #1b2c52;
+  --hover: #262a31;
+  --text: #eceef1;
+  --text2: #a0a7b1;
+  --text3: #6f7782;
+  --border: #2c3038;
+  --chip: #2a2e36;
+  --mark: #5c4a00;
+  --danger: #ff8a80;
+  --warn: #3a2a0a;
+  --warn-line: #7a5a16;
+  --on-warn: #ffd58a;
+}
+
+@theme inline {
+  --color-brand: var(--brand);
+  --color-soft: var(--soft);
+  --color-on-soft: var(--on-soft);
+  --color-line: var(--line);
+  --color-dot: var(--dot);
+  --color-title: var(--title);
+  --color-on-title: var(--on-title);
+  --color-canvas: var(--canvas);
+  --color-card: var(--card);
+  --color-sel: var(--sel);
+  --color-hover: var(--hover);
+  --color-ink: var(--text);
+  --color-ink2: var(--text2);
+  --color-ink3: var(--text3);
+  --color-edge: var(--border);
+  --color-chip: var(--chip);
+  --color-mark: var(--mark);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+  --color-warn-line: var(--warn-line);
+  --color-on-warn: var(--on-warn);
+  --font-sans: "Inter Variable", system-ui, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--card);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--text-size, 15px);
+  font-weight: var(--body-weight, 400);
+  line-height: 1.45;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* Thin, quiet scrollbars, so list rows reach the edge of their pane. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.selectable {
+  user-select: text;
+}
+
+mark {
+  background: var(--mark);
+  color: inherit;
+  border-radius: 2px;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--line);
+  outline-offset: 1px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--chip);
+  border-radius: 5px;
+  border: 2px solid var(--card);
+}
+
+/* Rich text (composer, signatures). Tailwind's reset removes list and link styling. */
+.rich .ProseMirror {
+  min-height: 100%;
+}
+.rich p {
+  margin: 0 0 0.6em;
+}
+.rich ul {
+  list-style: disc;
+  padding-left: 1.4em;
+  margin: 0 0 0.6em;
+}
+.rich ol {
+  list-style: decimal;
+  padding-left: 1.4em;
+  margin: 0 0 0.6em;
+}
+.rich a {
+  color: var(--brand);
+  text-decoration: underline;
+}
+.rich blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 10px;
+  color: var(--text2);
+}
+
+/* Density (Settings → Appearance): vertical padding of message rows. */
+:root {
+  --row-pad: 9px;
+}
+:root[data-density="compact"] {
+  --row-pad: 4px;
+}
+:root[data-density="roomy"] {
+  --row-pad: 13px;
+}

@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenWren design mockup</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+:root{
+  --brand:#1A64B0;--soft:#CFE2F9;--on-soft:#0C447C;--line:#85B7EB;--dot:#378ADD;--title:#CFE2F9;--on-title:#1A64B0;
+  --canvas:#F6F7F9;--card:#fff;--sel:#D9E8FA;--hover:#EEF0F3;
+  --text:#1F2328;--text2:#5F6772;--text3:#9299A3;--border:#E3E6EA;
+  --page:#E9EBEE;--chip:#EEF0F3;--mark:#FFE9A8;--danger:#C62828;
+}
+@media (prefers-color-scheme:dark){:root{
+  --brand:#85B7EB;--soft:#0C447C;--on-soft:#CFE2F9;--line:#378ADD;--dot:#85B7EB;--title:#0F2C4D;--on-title:#B5D4F4;
+  --canvas:#111318;--card:#1B1E24;--sel:#12355C;--hover:#262A31;
+  --text:#ECEEF1;--text2:#A0A7B1;--text3:#6F7782;--border:#2C3038;
+  --page:#08090C;--chip:#2A2E36;--mark:#5C4A00;--danger:#FF8A80;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--text);font:14px/1.4 Inter,"Segoe UI",system-ui,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:22px;font-weight:600;margin:0 0 4px}
+h2{font-size:15px;font-weight:600;margin:40px 0 10px;color:var(--text2)}
+p.lead{color:var(--text2);margin:0}
+i.ti{font-size:20px;vertical-align:-4px}
+.win{background:var(--canvas);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.10)}
+.titlebar{height:52px;background:var(--title);color:var(--on-title);display:flex;align-items:center;gap:16px;padding:0 16px}
+.titlebar .name{font-weight:600;display:flex;gap:8px;align-items:center;width:204px;flex:none}
+.search{flex:0 1 520px;background:var(--card);color:var(--text3);border:1px solid var(--border);border-radius:18px;height:36px;display:flex;align-items:center;gap:8px;padding:0 14px}
+.search.active{color:var(--text);border-color:var(--line);box-shadow:0 0 0 1px var(--line)}
+.tabs{display:flex;gap:20px;padding:8px 16px 0;font-size:14px;color:var(--text2)}
+.tabs .on{color:var(--text);font-weight:600;border-bottom:2px solid var(--brand);padding-bottom:4px}
+.ribbon{margin:6px 8px;height:40px;background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:14px;padding:0 10px;color:var(--text2)}
+.btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--border);background:var(--card);color:var(--text);white-space:nowrap}
+.btn.primary{background:var(--soft);border-color:var(--line);color:var(--on-soft);font-weight:600}
+.btn.wide{width:100%;justify-content:center;height:40px;border-radius:20px;margin-bottom:6px}
+.acts{display:flex;gap:4px;align-items:center;color:var(--text2);padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--border)}
+.acts i{padding:6px;border-radius:8px;box-sizing:content-box}
+.btn.ghost{border-color:transparent;background:none;color:var(--text2)}
+.sep{width:1px;height:20px;background:var(--border)}
+.panes{display:flex;gap:10px;padding:10px;height:540px}
+.folders{width:220px;flex:none;overflow:hidden}
+.folders .acct{color:var(--text2);padding:10px 8px 4px;display:flex;gap:6px;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.folders .f{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 28px;border-radius:17px;color:var(--text)}
+.folders .f.on{background:var(--sel)}
+.folders .f b{margin-left:auto;color:var(--brand);font-weight:400;font-size:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.list{width:340px;flex:none;display:flex;flex-direction:column}
+.list .head{display:flex;align-items:center;gap:16px;padding:10px 12px;color:var(--text2)}
+.list .head .on{color:var(--text);font-weight:600;border-bottom:2px solid var(--dot)}
+.grp{padding:6px 12px;font-size:12px;color:var(--text2)}
+.msg{display:flex;gap:10px;padding:9px 10px;margin:2px 6px;border-radius:10px}
+.msg.sel{background:var(--sel)}
+.msg.unread .who,.msg.unread .subj{font-weight:600}
+.msg.unread .time{color:var(--brand);font-weight:600}
+.msg.unread .who::after{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--dot);margin-left:8px}
+.av{width:32px;height:32px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:var(--chip);color:var(--text2)}
+.msg .body{min-width:0;flex:1}
+.line{display:flex;justify-content:space-between;gap:8px}
+.t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.time,.meta{font-size:12px;color:var(--text2);white-space:nowrap}
+.prev{color:var(--text2)}
+.reader{flex:1;min-width:0;padding:16px 20px;overflow:hidden}
+.reader h3{font-size:20px;font-weight:600;margin:0 0 14px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:14px;border:1px solid var(--border);background:var(--card);color:var(--text2);font-size:13px;white-space:nowrap}
+.chip.on{background:var(--soft);border-color:var(--line);color:var(--on-soft);font-weight:600}
+.att{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:10px;color:var(--text2)}
+mark{background:var(--mark);color:inherit;border-radius:2px}
+.field{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)}
+.field .lb{width:64px;color:var(--text2);flex:none}
+.pill{background:var(--chip);border-radius:12px;padding:2px 10px}
+.toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:6px 10px;margin:10px 0;background:var(--canvas);border-radius:10px;color:var(--text2)}
+.sig{border-top:1px dashed var(--border);padding-top:10px;color:var(--text2)}
+.dialog{display:flex;height:440px}
+.nav{width:220px;flex:none;background:var(--canvas);padding:16px 8px}
+.nav .ttl{font-size:18px;font-weight:600;padding:0 8px 12px}
+.nav .n{display:flex;gap:8px;align-items:center;padding:7px 12px;border-radius:17px}
+.nav .n.on{background:var(--sel)}
+.page{flex:1;min-width:0;padding:20px 24px;overflow:hidden}
+.page h3{font-size:16px;font-weight:600;margin:0 0 12px}
+label.lbl{display:block;color:var(--text2);font-size:12px;margin:12px 0 4px}
+.input{height:36px;border:1px solid var(--border);border-radius:10px;background:var(--card);display:flex;align-items:center;justify-content:space-between;padding:0 10px}
+.input.ph{color:var(--text3)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stage{background:var(--canvas);border:1px solid var(--border);border-radius:8px;padding:28px;display:flex;gap:24px;justify-content:center;align-items:flex-start;flex-wrap:wrap}
+.modal{width:400px;max-width:100%;padding:20px}
+.modal h3{font-size:18px;font-weight:600;margin:0 0 14px;display:flex;justify-content:space-between}
+.opt{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:12px;margin-top:8px}
+.opt.on{border:2px solid var(--line)}
+.opt small{color:var(--text2);display:block;font-size:12px}
+.bar{height:6px;border-radius:3px;background:var(--chip);overflow:hidden}
+.bar span{display:block;height:100%;background:var(--dot)}
+.radio{display:flex;gap:8px;align-items:center;padding:5px 0}
+.radio::before{content:"";width:14px;height:14px;border-radius:50%;border:1px solid var(--text3);flex:none}
+.radio.on::before{border:4px solid var(--dot)}
+.note{color:var(--text2);font-size:12px}
+</style>
+</head>
+<body>
+<main>
+<h1>OpenWren design mockup</h1>
+<p class="lead">Static reference for layout, spacing and colour. OpenWren's own look: soft tinted header, pill controls, rounded cards. Follows your system light or dark theme. See PLAN.md, section 6.</p>
+
+<h2>1. Main window</h2>
+<div class="win" id="s1"></div>
+
+<h2>2. Search, filtered to mail older than one year</h2>
+<div class="win" id="s2"></div>
+
+<h2>3. Compose, with signature</h2>
+<div class="win" id="s3"></div>
+
+<h2>4. Settings: signatures</h2>
+<div class="win card"><div class="dialog">
+  <div class="nav" data-nav="Signatures"></div>
+  <div class="page">
+    <h3>Signatures</h3>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span class="chip on">Work</span><span class="chip">Personal</span><span class="chip">Short reply</span>
+      <span class="btn ghost" style="color:var(--brand)"><i class="ti ti-plus"></i>New signature</span>
+    </div>
+    <label class="lbl">Name</label>
+    <div class="input">Work</div>
+    <label class="lbl">Signature</label>
+    <div class="card" style="border-radius:10px">
+      <div class="toolbar" style="margin:0;border-radius:0"><i class="ti ti-bold"></i><i class="ti ti-italic"></i><i class="ti ti-underline"></i><i class="ti ti-typography"></i><i class="ti ti-link"></i><i class="ti ti-photo"></i><span style="margin-left:auto"><i class="ti ti-code"></i> HTML</span></div>
+      <div style="padding:10px 12px;color:var(--text2)">Kind regards,<br><b style="color:var(--text)">Katy Reid</b><br>Operations lead · Contoso<br>+31 20 555 0142 · contoso.example</div>
+    </div>
+    <div class="grid3">
+      <div><label class="lbl">Use for account</label><div class="input">katy@work.com <i class="ti ti-chevron-down"></i></div></div>
+      <div><label class="lbl">New messages</label><div class="input">Work <i class="ti ti-chevron-down"></i></div></div>
+      <div><label class="lbl">Replies and forwards</label><div class="input">Short reply <i class="ti ti-chevron-down"></i></div></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:20px;align-items:center">
+      <span class="btn primary">Save</span><span class="btn">Discard</span>
+      <span class="btn ghost" style="margin-left:auto;color:var(--danger)"><i class="ti ti-trash"></i>Delete signature</span>
+    </div>
+  </div>
+</div></div>
+
+<h2>5. Add account, and 6. server settings</h2>
+<div class="stage">
+  <div class="card modal">
+    <h3>Add account <i class="ti ti-x" style="color:var(--text2)"></i></h3>
+    <label class="lbl">Email address</label>
+    <div class="input ph">name@company.com</div>
+    <div class="opt on"><i class="ti ti-brand-google" style="font-size:24px"></i><div><b>Google</b><small>Sign in with your browser</small></div><i class="ti ti-chevron-right" style="margin-left:auto"></i></div>
+    <div class="opt"><i class="ti ti-server" style="font-size:24px"></i><div><b>IMAP</b><small>Folders stay in sync with the server</small></div><i class="ti ti-chevron-right" style="margin-left:auto"></i></div>
+    <div class="opt"><i class="ti ti-download" style="font-size:24px"></i><div><b>POP3</b><small>Download mail to this computer</small></div><i class="ti ti-chevron-right" style="margin-left:auto"></i></div>
+    <p class="note" style="margin:14px 0 0">Server settings are detected from your address. You can edit them on the next step.</p>
+  </div>
+  <div class="card modal">
+    <h3><span><i class="ti ti-arrow-left" style="color:var(--text2)"></i> IMAP settings</span> <i class="ti ti-x" style="color:var(--text2)"></i></h3>
+    <div class="grid2">
+      <div><label class="lbl" style="margin-top:0">Your name</label><div class="input">Katy Reid</div></div>
+      <div><label class="lbl" style="margin-top:0">Password</label><div class="input">••••••••••</div></div>
+    </div>
+    <label class="lbl">Incoming server (IMAP)</label>
+    <div style="display:grid;grid-template-columns:1fr 80px 110px;gap:8px">
+      <div class="input">imap.work.com</div><div class="input">993</div><div class="input">TLS <i class="ti ti-chevron-down"></i></div>
+    </div>
+    <label class="lbl">Outgoing server (SMTP)</label>
+    <div style="display:grid;grid-template-columns:1fr 80px 110px;gap:8px">
+      <div class="input">smtp.work.com</div><div class="input">465</div><div class="input">TLS <i class="ti ti-chevron-down"></i></div>
+    </div>
+    <p class="note" style="margin:12px 0;color:var(--brand)"><i class="ti ti-circle-check"></i> Connection tested. Both servers accepted your sign-in.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><span class="btn">Test again</span><span class="btn primary">Add account</span></div>
+  </div>
+</div>
+
+<h2>7. Settings: sync and storage</h2>
+<div class="win card"><div class="dialog">
+  <div class="nav" data-nav="Sync and storage"></div>
+  <div class="page">
+    <h3>Sync and storage</h3>
+    <div class="grid2">
+      <div>
+        <label class="lbl" style="margin-top:0">Account</label>
+        <div class="input">katy@gmail.com <i class="ti ti-chevron-down"></i></div>
+        <label class="lbl">Keep message text on this computer</label>
+        <div class="radio on">All mail (search everything offline)</div>
+        <div class="radio">Last 2 years</div>
+        <div class="radio">Last year</div>
+        <div class="radio">Last 3 months</div>
+        <p class="note">Sender, subject and date are always kept for all mail, so older messages stay searchable. Their text is fetched from the server when needed.</p>
+        <label class="lbl">Download attachments</label>
+        <div class="input">When opened <i class="ti ti-chevron-down"></i></div>
+      </div>
+      <div>
+        <label class="lbl" style="margin-top:0">Sync status</label>
+        <div class="card" style="padding:12px;border-radius:10px">
+          <div class="line"><span>Headers</span><span class="meta">84,210 of 84,210</span></div>
+          <div class="bar" style="margin:6px 0 12px"><span style="width:100%"></span></div>
+          <div class="line"><span>Message text</span><span class="meta">51,400 of 84,210 · back to Mar 2023</span></div>
+          <div class="bar" style="margin:6px 0 0"><span style="width:61%"></span></div>
+        </div>
+        <label class="lbl">Storage used</label>
+        <div class="card" style="padding:12px;border-radius:10px">
+          <div class="line"><span>Mail and search index</span><span class="meta">1.8 GB</span></div>
+          <div class="line" style="margin-top:6px"><span>Attachments</span><span class="meta">640 MB</span></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px"><span class="btn">Pause sync</span><span class="btn">Clear attachment cache</span></div>
+      </div>
+    </div>
+  </div>
+</div></div>
+</main>
+
+<script>
+const ic = n => `<i class="ti ti-${n}"></i>`;
+const titlebar = q => `<div class="titlebar"><span class="name">${ic('mail')}OpenWren</span>
+  <div class="search ${q ? 'active' : ''}">${ic('search')}<span>${q || 'Search'}</span>${q ? '<span style="margin-left:auto">' + ic('x') + '</span>' : ''}</div>
+  <span style="margin-left:auto">${ic('settings')}</span></div>`;
+const ribbon = '';
+const acts = `<div class="acts">${ic('archive')}${ic('trash')}${ic('folder-share')}${ic('mail-opened')}<span class="sep" style="margin:0 6px"></span>
+  ${ic('flag')}${ic('pin')}${ic('clock')}${ic('tag')}<span style="margin-left:auto">${ic('dots')}</span></div>`;
+const folders = sel => `<div class="folders"><span class="btn primary wide">${ic('pencil-plus')}New mail</span>
+  <div class="acct">${ic('chevron-down')}Favorites</div>
+  <div class="f">${ic('inbox')}Inbox<b>8</b></div><div class="f">${ic('folder')}Invoices<b>2</b></div>
+  <div class="acct">${ic('chevron-down')}katy@gmail.com</div>
+  <div class="f ${sel ? 'on' : ''}">${ic('inbox')}Inbox<b>8</b></div>
+  <div class="f">${ic('pencil')}Drafts</div><div class="f">${ic('send')}Sent items</div>
+  <div class="f">${ic('trash')}Deleted items</div><div class="f">${ic('mail-off')}Junk email</div><div class="f">${ic('archive')}Archive</div>
+  <div class="acct">${ic('chevron-right')}katy@work.com</div>
+  <div class="acct">${ic('chevron-right')}old-pop3@isp.net</div>
+  <div class="f" style="padding-left:8px;color:var(--brand)">${ic('plus')}Add account</div></div>`;
+const msg = (av, who, subj, time, prev, cls = '') => `<div class="msg ${cls}"><div class="av">${av}</div><div class="body">
+  <div class="t who">${who}</div><div class="line"><span class="t subj">${subj}</span><span class="time">${time}</span></div>
+  <div class="t prev">${prev}</div></div></div>`;
+const inbox = `<div class="card list"><div class="head"><span class="on">Focused</span><span>Other</span><span style="margin-left:auto">${ic('filter')}</span></div>
+  <div class="grp">Pinned</div>${msg('AB', 'Amanda Brady ' + ic('pin'), 'Team pictures', '8:46', 'We look forward to meeting our fall interns…')}
+  <div class="grp">Today</div>${msg('LG', 'Laurence Gilbertson', 'September expense reports', '11:58', 'Hello, please see the updated instructions…', 'unread')}
+  ${msg('MK', 'Mona Kane', 'Event announcement content', '11:11', "Hi team, I hope you're all doing well. Let's…", 'sel')}
+  ${msg('CE', 'Cameron Evans', 'Planning session', '10:38', "Let's get together and discuss the agenda…", 'unread')}
+  <div class="grp">Yesterday</div>${msg('EA', 'Elvia Atkins', 'Project tracker design doc', 'Wed 15:55', 'Project is comprehensive and user-friendly…')}
+  ${msg('KB', 'Kadji Bell', 'Research project update', 'Wed 14:21', 'I hope this email finds you well. I wanted…')}</div>`;
+const readerHead = (av, who, meta) => `<div style="display:flex;gap:12px;align-items:center;margin-bottom:16px"><div class="av">${av}</div>
+  <div style="flex:1;min-width:0"><div style="font-weight:600">${who}</div><div class="meta">${meta}</div></div>
+  <span style="color:var(--text2);display:flex;gap:12px">${ic('arrow-back-up')}${ic('arrow-back-up-double')}${ic('arrow-forward-up')}${ic('dots')}</span></div>`;
+
+document.getElementById('s1').innerHTML = titlebar() + ribbon + `<div class="panes">${folders(true)}${inbox}
+  <div class="card reader">${acts}<h3>Event announcement content</h3>${readerHead('MK', 'Mona Kane', 'To: you; Cameron Evans · Today 11:11')}
+  <p>Hi team,</p><p>I hope you're all doing well. Here's the draft of the announcement for next week's event. Let me know if anything should change before Friday.</p>
+  <p>Thanks,<br>Mona</p><div class="att">${ic('file-text')}announcement-draft.pdf · 212 KB</div>
+  <div style="margin-top:24px;display:flex;gap:8px"><span class="btn">${ic('arrow-back-up')}Reply</span><span class="btn">${ic('arrow-forward-up')}Forward</span></div></div></div>`;
+
+const res = (av, who, subj, date, where, cls = '') => msg(av, who, subj, date, where, cls);
+document.getElementById('s2').innerHTML = titlebar('invoice') + ribbon + `
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 12px 2px">
+    <span class="chip">All accounts ${ic('chevron-down')}</span><span class="chip">All folders ${ic('chevron-down')}</span>
+    <span class="chip">From ${ic('chevron-down')}</span><span class="chip">${ic('paperclip')}Has attachment</span><span class="sep"></span>
+    <span class="chip">Any time</span><span class="chip">Past year</span><span class="chip on">Older than 1 year</span>
+    <span class="chip">Older than 2 years</span><span class="chip">${ic('calendar')}Custom range</span></div>
+  <div class="panes" style="height:500px">${folders(false)}
+  <div class="card list"><div class="head"><b style="color:var(--text)">37 results</b><span style="margin-left:auto">Newest first ${ic('chevron-down')}</span></div>
+  <div class="grp">2025</div>${res('NP', 'Nordic Print', '<mark>Invoice</mark> 2025-0914', '14 Sep 2025', 'Inbox · katy@work.com', 'sel')}
+  ${res('HS', 'Hosting Support', 'Your yearly <mark>invoice</mark>', '2 Mar 2025', 'Archive · katy@gmail.com')}
+  <div class="grp">2024</div>${res('EA', 'Elvia Atkins', 'Re: corrected <mark>invoice</mark>', '19 Nov 2024', 'Sent items · katy@work.com')}
+  ${res('KB', 'Kadji Bell', '<mark>Invoice</mark> for workshop', '7 Jun 2024', 'Invoices · katy@gmail.com')}
+  <div class="grp">2023</div>${res('NP', 'Nordic Print', '<mark>Invoice</mark> 2023-1102', '2 Nov 2023', 'Inbox · katy@work.com')}
+  <div style="padding:12px;text-align:center;color:var(--brand)">${ic('cloud-search')} Search the server for more</div></div>
+  <div class="card reader">${acts}<h3>Invoice 2025-0914</h3>${readerHead('NP', 'Nordic Print', 'To: you · 14 Sep 2025, 09:02')}
+  <p>Hello Katy,</p><p>Attached is your <mark>invoice</mark> for the September print order. Payment is due within 30 days.</p>
+  <div class="att">${ic('file-text')}invoice-0914.pdf · 96 KB</div></div></div>`;
+
+document.getElementById('s3').innerHTML = titlebar() + ribbon + `<div class="panes">${folders(true)}${inbox}
+  <div class="card reader">
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><span class="btn primary">${ic('send')}Send</span><span class="btn">${ic('clock')}Send later</span>
+    <span class="meta" style="margin-left:auto">Draft saved at 11:00</span><span style="color:var(--text2)">${ic('external-link')} ${ic('trash')}</span></div>
+  <div class="field"><span class="lb">From</span>katy@work.com ${ic('chevron-down')}</div>
+  <div class="field"><span class="lb">To</span><span class="pill">Mona Kane ×</span><span style="margin-left:auto;color:var(--text2)">Cc  Bcc</span></div>
+  <div class="field"><span class="lb">Subject</span>Re: Event announcement content</div>
+  <div class="toolbar"><span>Inter ${ic('chevron-down')}</span><span>12 ${ic('chevron-down')}</span>${ic('bold')}${ic('italic')}${ic('underline')}${ic('highlight')}${ic('list')}${ic('list-numbers')}${ic('link')}${ic('photo')}${ic('paperclip')}
+    <span class="chip on" style="margin-left:auto">${ic('signature')}Signature: Work ${ic('chevron-down')}</span></div>
+  <p>Hi Mona,</p><p>The draft looks great. Two small changes in the attached file.</p>
+  <div class="sig">Kind regards,<br><b style="color:var(--text)">Katy Reid</b><br>Operations lead · Contoso<br>+31 20 555 0142 · contoso.example</div>
+  <div class="att" style="margin-top:12px">${ic('file-text')}announcement-v2.docx · 48 KB ×</div></div></div>`;
+
+const navItems = [['user-circle', 'Accounts'], ['signature', 'Signatures'], ['cloud-download', 'Sync and storage'], ['layout', 'Layout'],
+  ['palette', 'Appearance'], ['filter', 'Rules'], ['bell', 'Notifications'], ['keyboard', 'Shortcuts']];
+document.querySelectorAll('[data-nav]').forEach(el => {
+  el.innerHTML = '<div class="ttl">Settings</div>' + navItems.map(([i, n]) =>
+    `<div class="n ${n === el.dataset.nav ? 'on' : ''}">${ic(i)}${n}</div>`).join('');
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+---
+// Shows a screenshot from public/screens/ if the file exists at build time.
+// Until then it shows a neutral frame with the logo, so there is never a broken image.
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
+interface Props {
+  src: string;
+  alt: string;
+  label: string;
+  width?: number;
+  height?: number;
+}
+
+const { src, alt, label, width = 1600, height = 1000 } = Astro.props;
+const exists = existsSync(join(process.cwd(), 'public', src));
+---
+
+<figure class="shot">
+  {
+    exists ? (
+      <img src={src} alt={alt} width={width} height={height} loading="lazy" decoding="async" />
+    ) : (
+      <div class="shot-empty" style={`aspect-ratio:${width}/${height}`} role="img" aria-label={`${label} (screenshot to be added)`}>
+        <img src="/openwren-logo.svg" alt="" width="56" height="56" />
+        <span>{label}</span>
+      </div>
+    )
+  }
+</figure>
+
+<style>
+  .shot {
+    margin: 0;
+  }
+  .shot img,
+  .shot-empty {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .shot-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: var(--tint);
+    color: var(--text-2);
+    font-size: 0.9rem;
+  }
+  .shot-empty img {
+    width: 56px;
+    height: 56px;
+    border: 0;
+    border-radius: 13px;
+  }
+</style>

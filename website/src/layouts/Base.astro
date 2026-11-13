@@ -1,0 +1,74 @@
+---
+import '@fontsource-variable/inter';
+import '../styles/global.css';
+import { REPO_URL } from '../site';
+
+interface Props {
+  title?: string;
+  description?: string;
+  narrow?: boolean;
+  frontmatter?: { title?: string; description?: string };
+}
+
+const { frontmatter } = Astro.props;
+const title = Astro.props.title ?? frontmatter?.title;
+const description =
+  Astro.props.description ??
+  frontmatter?.description ??
+  'A free, open-source mail app for Linux that keeps your mail on your computer.';
+// Markdown pages (which pass frontmatter) get the narrow reading column.
+const narrow = Astro.props.narrow ?? Boolean(frontmatter);
+const pageTitle = title ? `${title} · OpenWren` : 'OpenWren: a free, open-source mail app for Linux';
+
+const nav = [
+  { href: '/download/', label: 'Download' },
+  { href: '/docs/', label: 'Docs' },
+  { href: '/privacy/', label: 'Privacy' },
+  { href: '/security/', label: 'Security' },
+  { href: '/stats/', label: 'Stats' },
+];
+const path = Astro.url.pathname.endsWith('/') ? Astro.url.pathname : Astro.url.pathname + '/';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/openwren-logo.svg" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="/">
+          <img src="/openwren-logo.svg" alt="" width="28" height="28" />
+          OpenWren
+        </a>
+        <nav class="site-nav" aria-label="Main">
+          {
+            nav.map((item) => (
+              <a href={item.href} aria-current={path === item.href ? 'page' : undefined}>
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+      </div>
+    </header>
+    <main>
+      <div class:list={['wrap', { 'narrow prose': narrow }]}>
+        <slot />
+      </div>
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <span>OpenWren is free software under the Apache License 2.0.</span>
+        <span>
+          <a href={REPO_URL}>Source code</a> · <a href="/privacy/">Privacy</a> · <a href="/security/">Security</a>
+        </span>
+      </div>
+    </footer>
+  </body>
+</html>

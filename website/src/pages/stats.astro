@@ -1,0 +1,478 @@
+---
+import Base from '../layouts/Base.astro';
+import { DEFAULT_STATS_URL } from '../site';
+
+const statsUrl = (import.meta.env.PUBLIC_STATS_URL || DEFAULT_STATS_URL).replace(/\/+$/, '');
+const apiUrl = `${statsUrl}/api/daily?days=90`;
+---
+
+<Base title="Stats" description="How many people use OpenWren, counted from the anonymous daily usage request.">
+  <h1>Stats</h1>
+  <p class="lead intro">
+    How many people use OpenWren. These numbers come from the anonymous daily usage request described on the
+    <a href="/privacy/">privacy page</a>. This page shows everything the project sees.
+  </p>
+
+  <div id="stats" data-api={apiUrl}>
+    <p id="stats-status" class="note" role="status">Loading the numbers.</p>
+    <noscript>
+      <p class="note">
+        This page needs JavaScript to fetch the numbers and draw the chart. The raw data is at
+        <a href={apiUrl}>{apiUrl}</a>.
+      </p>
+    </noscript>
+
+    <div id="stats-body" hidden>
+      <section class="tiles" aria-label="Users">
+        <div class="tile">
+          <div class="tile-label">Daily users</div>
+          <div class="tile-value" id="tile-daily">–</div>
+          <div class="tile-note" id="tile-daily-note"></div>
+        </div>
+        <div class="tile">
+          <div class="tile-label">Weekly users</div>
+          <div class="tile-value" id="tile-weekly">–</div>
+          <div class="tile-note" id="tile-weekly-note"></div>
+        </div>
+        <div class="tile">
+          <div class="tile-label">Monthly users</div>
+          <div class="tile-value" id="tile-monthly">–</div>
+          <div class="tile-note" id="tile-monthly-note"></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Users per day</h2>
+        <p class="muted" id="chart-range"></p>
+        <div class="chart" id="chart"></div>
+        <details class="chart-table">
+          <summary>Show the numbers as a table</summary>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th>Day</th><th>Daily users</th><th>New installations</th></tr>
+              </thead>
+              <tbody id="chart-rows"></tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+
+      <section class="splits">
+        <div>
+          <h2>By version</h2>
+          <ul class="bars" id="split-version"></ul>
+        </div>
+        <div>
+          <h2>By package</h2>
+          <ul class="bars" id="split-package"></ul>
+        </div>
+        <div>
+          <h2>By system</h2>
+          <ul class="bars" id="split-system"></ul>
+        </div>
+      </section>
+    </div>
+  </div>
+</Base>
+
+<script>
+  interface Day {
+    day: string;
+    daily: number;
+    weekly: number;
+    monthly: number;
+    new: number;
+  }
+  interface Split {
+    name: string;
+    count: number;
+  }
+  interface Stats {
+    days?: Day[];
+    byVersion?: Split[];
+    byPackage?: Split[];
+    bySystem?: Split[];
+  }
+
+  const DAY_MS = 86_400_000;
+  const SVG = 'http://www.w3.org/2000/svg';
+  const root = document.getElementById('stats')!;
+  const status = document.getElementById('stats-status')!;
+  const body = document.getElementById('stats-body')!;
+  const fmt = new Intl.NumberFormat('en');
+  const dayFmt = new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const longFmt = new Intl.DateTimeFormat('en', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const monthFmt = new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+  const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const setText = (id: string, text: string) => {
+    document.getElementById(id)!.textContent = text;
+  };
+
+  function svgEl(name: string, attrs: Record<string, string | number>, text?: string) {
+    const el = document.createElementNS(SVG, name);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+    if (text !== undefined) el.textContent = text;
+    return el;
+  }
+
+  /** A round axis maximum and step for values up to `max`. */
+  function axis(max: number) {
+    if (max <= 4) return { top: 4, step: 1 };
+    const rough = max / 4;
+    const pow = 10 ** Math.floor(Math.log10(rough));
+    const step = [1, 2, 2.5, 5, 10].map((m) => m * pow).find((s) => s >= rough)!;
+    return { top: Math.ceil(max / step) * step, step };
+  }
+
+  /** Every day from the first to the last, with zeros where the server sent nothing. */
+  function fillDays(days: Day[]): Day[] {
+    const byDay = new Map(days.map((d) => [d.day, d]));
+    const first = Date.parse(days[0].day);
+    const last = Date.parse(days[days.length - 1].day);
+    const out: Day[] = [];
+    for (let t = first; t <= last; t += DAY_MS) {
+      const key = iso(t);
+      out.push(byDay.get(key) ?? { day: key, daily: 0, weekly: 0, monthly: 0, new: 0 });
+    }
+    return out;
+  }
+
+  function drawChart(days: Day[]) {
+    const box = document.getElementById('chart')!;
+    box.replaceChildren();
+    const width = Math.max(box.clientWidth, 280);
+    const height = 260;
+    const m = { top: 12, right: 12, bottom: 28, left: 44 };
+    const w = width - m.left - m.right;
+    const h = height - m.top - m.bottom;
+    const { top, step } = axis(Math.max(...days.map((d) => d.daily)));
+    const x = (i: number) => m.left + (days.length === 1 ? w / 2 : (i / (days.length - 1)) * w);
+    const y = (v: number) => m.top + h - (v / top) * h;
+
+    const svg = svgEl('svg', {
+      width,
+      height,
+      viewBox: `0 0 ${width} ${height}`,
+      role: 'img',
+      'aria-label': `Line chart of daily users from ${longFmt.format(Date.parse(days[0].day))} to ${longFmt.format(Date.parse(days[days.length - 1].day))}. The same numbers are in the table below.`,
+    });
+
+    for (let v = 0; v <= top + 1e-9; v += step) {
+      svg.append(svgEl('line', { x1: m.left, x2: m.left + w, y1: y(v), y2: y(v), class: v === 0 ? 'c-base' : 'c-grid' }));
+      svg.append(svgEl('text', { x: m.left - 8, y: y(v) + 4, 'text-anchor': 'end', class: 'c-label' }, fmt.format(v)));
+    }
+
+    // Date labels: about one per 110 px, never crowding the right edge.
+    const every = Math.max(1, Math.ceil(days.length / Math.max(2, Math.floor(w / 110))));
+    for (let i = 0; i < days.length; i += every) {
+      if (days.length - 1 - i < every / 2 && i !== days.length - 1 && i !== 0) continue;
+      svg.append(
+        svgEl('text', { x: x(i), y: height - 8, 'text-anchor': i === 0 ? 'start' : 'middle', class: 'c-label' }, dayFmt.format(Date.parse(days[i].day))),
+      );
+    }
+
+    const points = days.map((d, i) => `${x(i).toFixed(1)},${y(d.daily).toFixed(1)}`);
+    if (days.length > 1) {
+      svg.append(svgEl('path', { d: `M${x(0)},${y(0)} L${points.join(' L')} L${x(days.length - 1)},${y(0)} Z`, class: 'c-area' }));
+      svg.append(svgEl('path', { d: `M${points.join(' L')}`, class: 'c-line' }));
+    }
+    const cursor = svgEl('line', { y1: m.top, y2: m.top + h, class: 'c-cursor', visibility: 'hidden' });
+    const dot = svgEl('circle', { r: 4, class: 'c-dot', visibility: days.length === 1 ? 'visible' : 'hidden', cx: x(0), cy: y(days[0].daily) });
+    svg.append(cursor, dot);
+
+    const tip = document.createElement('div');
+    tip.className = 'chart-tip';
+    tip.hidden = true;
+    box.append(svg, tip);
+
+    const show = (i: number) => {
+      const d = days[i];
+      cursor.setAttribute('x1', String(x(i)));
+      cursor.setAttribute('x2', String(x(i)));
+      cursor.setAttribute('visibility', 'visible');
+      dot.setAttribute('cx', String(x(i)));
+      dot.setAttribute('cy', String(y(d.daily)));
+      dot.setAttribute('visibility', 'visible');
+      tip.replaceChildren();
+      const date = document.createElement('div');
+      date.className = 'chart-tip-date';
+      date.textContent = longFmt.format(Date.parse(d.day));
+      const a = document.createElement('div');
+      a.textContent = `${fmt.format(d.daily)} daily users`;
+      const b = document.createElement('div');
+      b.textContent = `${fmt.format(d.new)} new`;
+      tip.append(date, a, b);
+      tip.hidden = false;
+      const left = Math.min(Math.max(x(i) - tip.offsetWidth / 2, 0), width - tip.offsetWidth);
+      tip.style.left = `${left}px`;
+      tip.style.top = `${Math.max(y(d.daily) - tip.offsetHeight - 12, 0)}px`;
+    };
+    const hide = () => {
+      tip.hidden = true;
+      cursor.setAttribute('visibility', 'hidden');
+      if (days.length > 1) dot.setAttribute('visibility', 'hidden');
+    };
+    svg.addEventListener('pointermove', (e) => {
+      const px = e.clientX - svg.getBoundingClientRect().left;
+      const i = days.length === 1 ? 0 : Math.round(((px - m.left) / w) * (days.length - 1));
+      show(Math.min(Math.max(i, 0), days.length - 1));
+    });
+    svg.addEventListener('pointerleave', hide);
+  }
+
+  function drawSplit(id: string, rows: Split[] | undefined) {
+    const list = document.getElementById(id)!;
+    list.replaceChildren();
+    const clean = (rows ?? [])
+      .map((r) => ({ name: String(r.name), count: num(r.count) }))
+      .filter((r) => r.count > 0)
+      .sort((a, b) => b.count - a.count);
+    if (clean.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'muted';
+      li.textContent = 'No data yet.';
+      list.append(li);
+      return;
+    }
+    const max = clean[0].count;
+    for (const r of clean) {
+      const li = document.createElement('li');
+      const name = document.createElement('span');
+      name.className = 'bar-name';
+      name.textContent = r.name;
+      const count = document.createElement('span');
+      count.className = 'bar-count';
+      count.textContent = fmt.format(r.count);
+      const track = document.createElement('span');
+      track.className = 'bar-track';
+      const fill = document.createElement('span');
+      fill.className = 'bar-fill';
+      fill.style.width = `${Math.max((r.count / max) * 100, 1)}%`;
+      track.append(fill);
+      li.append(name, count, track);
+      list.append(li);
+    }
+  }
+
+  function render(data: Stats) {
+    const raw = (Array.isArray(data.days) ? data.days : [])
+      .filter((d) => d && /^\d{4}-\d{2}-\d{2}$/.test(d.day))
+      .map((d) => ({ day: d.day, daily: num(d.daily), weekly: num(d.weekly), monthly: num(d.monthly), new: num(d.new) }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+    if (raw.length === 0 || raw.every((d) => d.daily === 0)) {
+      status.textContent = 'No data yet. Numbers appear here once the first usage requests have been counted.';
+      return;
+    }
+    const days = fillDays(raw);
+    const latest = days[days.length - 1];
+
+    // "Current" week and month are those of today (UTC), as the server counts days in UTC.
+    const now = Date.now();
+    const today = iso(now);
+    const weekday = (new Date(now).getUTCDay() + 6) % 7; // Monday = 0, as in ISO weeks
+    const monday = iso(Math.floor(now / DAY_MS) * DAY_MS - weekday * DAY_MS);
+    const month = today.slice(0, 7);
+    const weekly = days.filter((d) => d.day >= monday && d.day <= today).reduce((s, d) => s + d.weekly, 0);
+    const monthly = days.filter((d) => d.day.startsWith(month)).reduce((s, d) => s + d.monthly, 0);
+
+    setText('tile-daily', fmt.format(latest.daily));
+    setText('tile-daily-note', `on ${longFmt.format(Date.parse(latest.day))}`);
+    setText('tile-weekly', fmt.format(weekly));
+    setText('tile-weekly-note', `this week, since Monday ${dayFmt.format(Date.parse(monday))}`);
+    setText('tile-monthly', fmt.format(monthly));
+    setText('tile-monthly-note', `so far in ${monthFmt.format(now)}`);
+    setText('chart-range', `${longFmt.format(Date.parse(days[0].day))} to ${longFmt.format(Date.parse(latest.day))}, days in UTC.`);
+
+    const rows = document.getElementById('chart-rows')!;
+    rows.replaceChildren();
+    for (const d of [...days].reverse()) {
+      const tr = document.createElement('tr');
+      for (const v of [d.day, fmt.format(d.daily), fmt.format(d.new)]) {
+        const td = document.createElement('td');
+        td.textContent = v;
+        tr.append(td);
+      }
+      rows.append(tr);
+    }
+
+    drawSplit('split-version', data.byVersion);
+    drawSplit('split-package', data.byPackage);
+    drawSplit('split-system', data.bySystem);
+
+    status.hidden = true;
+    body.hidden = false;
+    drawChart(days);
+    let lastWidth = document.getElementById('chart')!.clientWidth;
+    new ResizeObserver(() => {
+      const width = document.getElementById('chart')!.clientWidth;
+      if (width !== lastWidth) {
+        lastWidth = width;
+        drawChart(days);
+      }
+    }).observe(document.getElementById('chart')!);
+  }
+
+  async function load() {
+    try {
+      const res = await fetch(root.dataset.api!, { credentials: 'omit' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      render((await res.json()) as Stats);
+    } catch {
+      status.textContent = 'The numbers could not be loaded. Please try again later.';
+    }
+  }
+
+  void load();
+</script>
+
+<style is:global>
+  .intro {
+    max-width: 720px;
+  }
+  #stats {
+    margin-top: 28px;
+  }
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .tile {
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  .tile-label {
+    color: var(--text-2);
+    font-size: 0.9rem;
+  }
+  .tile-value {
+    font-size: 2.25rem;
+    font-weight: 620;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .tile-note {
+    color: var(--text-2);
+    font-size: 0.85rem;
+  }
+  .chart {
+    position: relative;
+    margin-top: 12px;
+  }
+  .chart svg {
+    display: block;
+    touch-action: pan-y;
+  }
+  .c-grid {
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+  .c-base {
+    stroke: var(--text-2);
+    stroke-width: 1;
+    opacity: 0.6;
+  }
+  .c-label {
+    fill: var(--text-2);
+    font-size: 12px;
+    font-family: var(--font);
+    font-variant-numeric: tabular-nums;
+  }
+  .c-area {
+    fill: var(--tint);
+    opacity: 0.7;
+  }
+  .c-line {
+    fill: none;
+    stroke: var(--accent-text);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .c-cursor {
+    stroke: var(--text-2);
+    stroke-width: 1;
+  }
+  .c-dot {
+    fill: var(--accent-text);
+    stroke: var(--bg);
+    stroke-width: 2;
+  }
+  .chart-tip {
+    position: absolute;
+    pointer-events: none;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+  .chart-tip-date {
+    color: var(--text-2);
+  }
+  .chart-table {
+    margin-top: 8px;
+    color: var(--text-2);
+    font-size: 0.9rem;
+  }
+  .chart-table summary {
+    cursor: pointer;
+    width: fit-content;
+  }
+  .chart-table .table-scroll {
+    max-height: 320px;
+    overflow-y: auto;
+    color: var(--text);
+  }
+  .chart-table td {
+    font-variant-numeric: tabular-nums;
+  }
+  .splits {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0 40px;
+  }
+  .splits h2 {
+    font-size: 1.1rem;
+  }
+  .bars {
+    list-style: none;
+    padding: 0;
+    margin-top: 12px;
+  }
+  .bars li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 12px;
+    font-size: 0.92rem;
+  }
+  .bars li + li {
+    margin-top: 10px;
+  }
+  .bar-count {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-2);
+  }
+  .bar-track {
+    grid-column: 1 / -1;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--tint);
+    overflow: hidden;
+  }
+  .bar-fill {
+    display: block;
+    height: 100%;
+    border-radius: 4px;
+    background: var(--accent);
+  }
+</style>

@@ -1,0 +1,163 @@
+---
+import Base from '../layouts/Base.astro';
+import Screenshot from '../components/Screenshot.astro';
+import { REPO_URL } from '../site';
+---
+
+<Base>
+  <section class="hero">
+    <h1>A free, open-source mail app for Linux that keeps your mail on your computer</h1>
+    <p class="lead">
+      OpenWren is a desktop mail client for IMAP accounts and Gmail. It syncs your mail to an encrypted database on your
+      own machine and talks only to your mail servers.
+    </p>
+    <div class="actions">
+      <a class="button" href="/download/">Download</a>
+      <a class="button secondary" href={REPO_URL}>Source code</a>
+    </div>
+  </section>
+
+  <section class="hero-shot" aria-label="Screenshot">
+    <Screenshot src="/screens/inbox.png" alt="The OpenWren inbox: folders, message list and reading pane" label="Inbox" />
+  </section>
+
+  <section class="reasons">
+    <article>
+      <h2>Free</h2>
+      <p>No price, no account to create, no ads. You install it, add your mail account and read your mail.</p>
+    </article>
+    <article>
+      <h2>Open source</h2>
+      <p>
+        Licensed under Apache-2.0. Every line is public in the <a href={REPO_URL}>repository</a>, so anyone can read
+        what the app does, build it themselves or change it.
+      </p>
+    </article>
+    <article>
+      <h2>Why it exists</h2>
+      <p>
+        I wanted a good, modern mail app on Linux and could not find one I was happy to use every day. So I built the
+        one I was missing, and I am sharing it.
+      </p>
+    </article>
+    <article>
+      <h2>Private</h2>
+      <p>
+        Mail is stored locally in an encrypted database. Tracking pixels and tracking codes in links are removed, remote
+        images stay blocked until you ask for them, and suspicious mail is flagged. The <a href="/privacy/">privacy page</a>
+        lists every network request the app makes.
+      </p>
+    </article>
+  </section>
+
+  <section class="pair">
+    <div>
+      <h2>Warnings on suspicious mail</h2>
+      <p>
+        OpenWren warns you when a message fails its sender checks (SPF, DKIM, DMARC), when a company name appears on an
+        address that does not belong to it, and when a link shows one site but leads to another.
+      </p>
+    </div>
+    <Screenshot src="/screens/warning.png" alt="A message with a warning banner above it" label="Warning on a suspicious message" width={1200} height={800} />
+  </section>
+
+  <section class="pair">
+    <div>
+      <h2>Add an account and start</h2>
+      <p>
+        Enter your address and password for an IMAP account, or your Gmail address and an app password. Passwords are
+        kept in the system keyring. The <a href="/docs/">docs</a> cover accounts, keyboard shortcuts and search.
+      </p>
+    </div>
+    <Screenshot src="/screens/welcome.png" alt="The welcome screen, where you add your first account" label="Welcome screen" width={1200} height={800} />
+  </section>
+
+  <section class="rust">
+    <h2>Built with Rust</h2>
+    <dl>
+      <div>
+        <dt>Rust core</dt>
+        <dd>Sync, mail parsing, search and sending are written in Rust.</dd>
+      </div>
+      <div>
+        <dt>Tauri 2</dt>
+        <dd>The window uses the system's WebKitGTK instead of shipping a browser, so the download is about 14 MB.</dd>
+      </div>
+      <div>
+        <dt>SQLite</dt>
+        <dd>Mail is stored in SQLite, encrypted with SQLCipher. Search uses the FTS5 full-text index.</dd>
+      </div>
+      <div>
+        <dt>React and TypeScript</dt>
+        <dd>The interface is written in React and TypeScript.</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="closing">
+    <h2>Get OpenWren</h2>
+    <p class="muted">Packages for Debian, Ubuntu and Fedora, and an AppImage for everything else.</p>
+    <div class="actions">
+      <a class="button" href="/download/">Download</a>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .hero {
+    max-width: 760px;
+  }
+  .hero-shot {
+    margin-top: 40px;
+  }
+  .reasons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0 40px;
+    margin-top: 32px;
+  }
+  .reasons article {
+    padding: 24px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .reasons h2,
+  .pair h2 {
+    margin-top: 0;
+    font-size: 1.2rem;
+  }
+  .pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px 40px;
+    align-items: center;
+    margin-top: 48px;
+  }
+  .rust {
+    margin-top: 56px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .rust dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px 32px;
+    margin: 1.25rem 0 0;
+  }
+  .rust dt {
+    font-weight: 620;
+  }
+  .rust dd {
+    margin: 4px 0 0;
+    color: var(--text-2);
+  }
+  .closing {
+    margin-top: 56px;
+    padding: 28px 24px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  .closing h2 {
+    margin-top: 0;
+  }
+</style>
