@@ -49,7 +49,6 @@ tauri-plugin-autostart = "2"
 [dev-dependencies]
 # For the test that checks published updates against the update key.
 minisign-verify = "0.2"
-base64 = "0.22"
 
 [[bench]]
 name = "engine"
