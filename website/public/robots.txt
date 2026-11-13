@@ -1,0 +1,5 @@
+# Everything on this site is public: search engines, archives and AI crawlers are welcome.
+User-agent: *
+Allow: /
+
+Sitemap: https://openwren.app/sitemap.xml
