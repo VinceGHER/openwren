@@ -12,7 +12,7 @@ import { REPO_URL, RELEASES_URL } from '../site';
   </p>
   <p class="muted">
     <a href="#apt">apt</a> · <a href="#dnf">dnf</a> · <a href="#appimage">AppImage</a> ·
-    <a href="#source">Build from source</a>
+    <a href="#source">Build from source</a> · <a href="#uninstall">Uninstall</a>
   </p>
 
   <h2 id="apt">Debian, Ubuntu and derivatives (apt)</h2>
@@ -35,6 +35,26 @@ import { REPO_URL, RELEASES_URL } from '../site';
   <p>
     For any other distribution, download the AppImage from the
     <a href={RELEASES_URL}>latest release on GitHub</a>, make the file executable and run it.
+  </p>
+
+  <h2 id="uninstall">Uninstall</h2>
+  <p>Remove the package with your package manager:</p>
+  <Command code="sudo apt remove openwren" />
+  <Command code="sudo dnf remove openwren" />
+  <p>
+    Like other Linux apps, this leaves your own data in place, so that a reinstall finds your accounts and mail again.
+    To remove everything, quit OpenWren first (tray icon, then Quit) and run these three commands.
+  </p>
+  <p>1. The downloaded mail, search index, drafts and settings (the encrypted database).</p>
+  <Command code="rm -rf ~/.local/share/org.openwren.app" />
+  <p>2. The start-at-login entry.</p>
+  <Command code="rm -f ~/.config/autostart/openwren.desktop" />
+  <p>3. The account passwords and the database key in the system keyring.</p>
+  <Command code="secret-tool clear service OpenWren" />
+  <p>
+    <code>secret-tool</code> is in the package <code>libsecret-tools</code> (Debian, Ubuntu) or
+    <code>libsecret</code> (Fedora). Without it, open "Passwords and Keys", search for "OpenWren" and delete the
+    entries. Your mail stays on your mail servers; only the copy on this computer is deleted.
   </p>
 
   <h2 id="key">Signing key</h2>

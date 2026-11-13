@@ -109,6 +109,39 @@ pnpm tauri build --bundles deb
 The package lands in `src-tauri/target/release/bundle/deb/`. To add the app to
 your menu without installing the package, run `sh scripts/install-launcher.sh`.
 
+## Uninstall
+
+Removing the package takes away the program, its menu entry and its icons:
+
+```bash
+sudo apt remove openwren
+```
+
+```bash
+sudo dnf remove openwren
+```
+
+Like other Linux apps, this leaves your own data in place, so that a reinstall
+finds your accounts and mail again. To remove everything, quit OpenWren first
+(tray icon → Quit), then delete these three things.
+
+| What | Where | Remove it with |
+| --- | --- | --- |
+| Downloaded mail, search index, drafts and settings (the encrypted database) | `~/.local/share/org.openwren.app/` | `rm -rf ~/.local/share/org.openwren.app` |
+| The start-at-login entry | `~/.config/autostart/openwren.desktop` | `rm -f ~/.config/autostart/openwren.desktop` |
+| Account passwords and the database key | The system keyring, under the name "OpenWren" | `secret-tool clear service OpenWren` |
+
+`secret-tool` is in the package `libsecret-tools` (Debian, Ubuntu) or
+`libsecret` (Fedora). Without it, open "Passwords and Keys", search for
+"OpenWren" and delete the entries.
+
+This deletes only the copy on this computer: your mail stays on your mail
+servers. The database cannot be read without the key from the keyring, so once
+the keyring entries are gone a leftover database file is unreadable anyway.
+
+If you ran `scripts/install-launcher.sh` from a source checkout, undo it with
+`sh scripts/install-launcher.sh remove`.
+
 ## Adding your mail
 
 - **Gmail:** choose Google, then follow the three steps to create an app
