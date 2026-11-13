@@ -121,6 +121,35 @@ mod tests {
         assert!(newer(&found.version, "0.0.1"));
     }
 
+    /// Against the real server: every update file named in latest.json must carry a
+    /// signature that the key built into the app accepts, exactly as the updater checks
+    /// before installing. Run after a release: `cargo test --lib updates -- --ignored`.
+    #[tokio::test]
+    #[ignore]
+    async fn published_updates_are_signed_with_the_key_in_the_app() {
+        use base64::Engine;
+        let _ = tokio_rustls::rustls::crypto::ring::default_provider().install_default();
+        let text = |encoded: &str| String::from_utf8(base64::engine::general_purpose::STANDARD.decode(encoded.trim()).unwrap()).unwrap();
+        let config: serde_json::Value = serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        let key = minisign_verify::PublicKey::decode(&text(config["plugins"]["updater"]["pubkey"].as_str().unwrap())).unwrap();
+
+        let client = reqwest::Client::new();
+        let manifest: serde_json::Value = client.get(MANIFEST).send().await.unwrap().json().await.unwrap();
+        let mut checked = std::collections::BTreeSet::new();
+        for (platform, entry) in manifest["platforms"].as_object().unwrap() {
+            let url = entry["url"].as_str().unwrap();
+            assert!(url.starts_with("https://packages.openwren.app/releases/"), "{platform}: {url}");
+            if !checked.insert(url.to_string()) {
+                continue; // the macOS file serves both processors
+            }
+            let file = client.get(url).send().await.unwrap().error_for_status().unwrap().bytes().await.unwrap();
+            let signature = minisign_verify::Signature::decode(&text(entry["signature"].as_str().unwrap())).unwrap();
+            key.verify(&file, &signature, true).unwrap_or_else(|e| panic!("{platform}: {url} is not signed with the update key: {e}"));
+            println!("verified {platform}: {} ({} bytes)", url.rsplit('/').next().unwrap(), file.len());
+        }
+        assert_eq!(checked.len(), 3, "AppImage, Windows installer, macOS archive");
+    }
+
     #[test]
     fn reads_the_version_file() {
         let found = read(r#"{"version":"0.2.0","notes":"Faster search.\nMore.","platforms":{}}"#, "0.1.3", "deb").unwrap();
