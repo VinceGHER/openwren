@@ -14,7 +14,7 @@ use serde::Serialize;
 use crate::db;
 use crate::error::Result;
 
-pub const ENDPOINT: &str = "https://stats.openwren.org/ping";
+pub const ENDPOINT: &str = "https://stats.openwren.app/ping";
 
 /// Exactly what is sent. Field names are short because the server stores only counters.
 #[derive(Debug, Clone, Serialize, PartialEq)]

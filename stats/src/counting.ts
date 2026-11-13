@@ -179,6 +179,6 @@ export function aggregate(rows: CounterRow[], today: string, days: number): Repo
 /** The origin to allow for a cross-site GET, or null. */
 export function allowedOrigin(origin: string | null): string | null {
   if (origin === null) return null;
-  if (origin === "https://openwren.org") return origin;
+  if (origin === "https://openwren.app") return origin;
   return /^http:\/\/localhost(:\d{1,5})?$/.test(origin) ? origin : null;
 }

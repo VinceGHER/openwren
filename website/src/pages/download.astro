@@ -17,17 +17,17 @@ import { REPO_URL, RELEASES_URL } from '../site';
 
   <h2 id="apt">Debian, Ubuntu and derivatives (apt)</h2>
   <p>1. Add the signing key.</p>
-  <Command code="curl -fsSL https://packages.openwren.org/key.gpg | sudo tee /usr/share/keyrings/openwren.gpg > /dev/null" />
+  <Command code="curl -fsSL https://packages.openwren.app/key.gpg | sudo tee /usr/share/keyrings/openwren.gpg > /dev/null" />
   <p>2. Add the repository.</p>
   <Command
-    code={'echo "deb [signed-by=/usr/share/keyrings/openwren.gpg] https://packages.openwren.org/apt stable main" | sudo tee /etc/apt/sources.list.d/openwren.list'}
+    code={'echo "deb [signed-by=/usr/share/keyrings/openwren.gpg] https://packages.openwren.app/apt stable main" | sudo tee /etc/apt/sources.list.d/openwren.list'}
   />
   <p>3. Install.</p>
   <Command code="sudo apt update && sudo apt install openwren" />
 
   <h2 id="dnf">Fedora (dnf)</h2>
   <p>1. Add the repository.</p>
-  <Command code="sudo dnf config-manager addrepo --from-repofile=https://packages.openwren.org/rpm/openwren.repo" />
+  <Command code="sudo dnf config-manager addrepo --from-repofile=https://packages.openwren.app/rpm/openwren.repo" />
   <p>2. Install.</p>
   <Command code="sudo dnf install openwren" />
 
@@ -42,10 +42,7 @@ import { REPO_URL, RELEASES_URL } from '../site';
     The apt and dnf repositories are signed with the OpenWren GPG key. Before you trust the key, compare its
     fingerprint with the one below.
   </p>
-  <div class="note placeholder">
-    <strong>Placeholder</strong>
-    <code>TODO: signing-key fingerprint. Replace this before publishing.</code>
-  </div>
+  <Command code="8991 7136 148C 9676 F3A5  1B21 4B8A FB6E 4238 18E0" />
   <p>To show the fingerprint of the key you downloaded:</p>
   <Command code="gpg --show-keys --with-fingerprint /usr/share/keyrings/openwren.gpg" />
   <p>More about signing is on the <a href="/security/">security page</a>.</p>

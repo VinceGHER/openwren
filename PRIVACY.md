@@ -11,7 +11,7 @@ OpenWren keeps your mail on your computer. There is no OpenWren account and no O
 | Remote images in a message | Only when you click "Show images", or for senders you chose to always allow | The server named in the message |
 | Unsubscribe | Only when you confirm "Unsubscribe" on a mailing | The sender's unsubscribe address |
 | Opening a link | When you click one | Your browser opens it |
-| Anonymous usage count | Once a day, unless switched off | `stats.openwren.org` |
+| Anonymous usage count | Once a day, unless switched off | `stats.openwren.app` |
 
 Nothing else. No analytics library, no crash reporter, no update check yet.
 

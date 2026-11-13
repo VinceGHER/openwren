@@ -65,7 +65,7 @@ Also: Dependabot (or Renovate) for dependency updates, secret scanning and push 
 
 | Item | Choice |
 |---|---|
-| Address | `openwren.org` (check availability; register `.org` and `.app`) |
+| Address | `openwren.app` (check availability; register `.org` and `.app`) |
 | Built with | A static site generator (Astro) in `openwren/website`; plain HTML output, no JavaScript needed to read it |
 | Hosted on | Cloudflare Pages or GitHub Pages. While private: Cloudflare Pages with access limited to invited addresses |
 | Tracking | None. No cookies, no third-party scripts, fonts served from the site itself |
@@ -80,7 +80,7 @@ Pages:
 6. **Changelog / blog:** release notes; an RSS feed.
 7. **Contribute:** links to the repository, good first issues, translation.
 
-Public statistics dashboard (section 6.4) lives at `stats.openwren.org`.
+Public statistics dashboard (section 6.4) lives at `stats.openwren.app`.
 
 ## 4. Getting it to users
 
@@ -101,16 +101,16 @@ Recommendation: Flatpak, APT, RPM and AppImage for the first public release. Fla
 
 ### 4.2 How the APT and RPM repositories work
 
-Both are static files, so they need no server of their own. CI builds the packages, signs them, regenerates the index files, and uploads everything to `packages.openwren.org` (object storage behind a CDN).
+Both are static files, so they need no server of their own. CI builds the packages, signs them, regenerates the index files, and uploads everything to `packages.openwren.app` (object storage behind a CDN).
 
 What a user runs, Debian or Ubuntu:
 
 ```bash
-curl -fsSL https://packages.openwren.org/key.gpg | sudo tee /usr/share/keyrings/openwren.gpg > /dev/null
+curl -fsSL https://packages.openwren.app/key.gpg | sudo tee /usr/share/keyrings/openwren.gpg > /dev/null
 ```
 
 ```bash
-echo "deb [signed-by=/usr/share/keyrings/openwren.gpg] https://packages.openwren.org/apt stable main" | sudo tee /etc/apt/sources.list.d/openwren.list
+echo "deb [signed-by=/usr/share/keyrings/openwren.gpg] https://packages.openwren.app/apt stable main" | sudo tee /etc/apt/sources.list.d/openwren.list
 ```
 
 ```bash
@@ -120,7 +120,7 @@ sudo apt update && sudo apt install openwren
 Fedora:
 
 ```bash
-sudo dnf config-manager addrepo --from-repofile=https://packages.openwren.org/rpm/openwren.repo
+sudo dnf config-manager addrepo --from-repofile=https://packages.openwren.app/rpm/openwren.repo
 ```
 
 ```bash
@@ -204,7 +204,7 @@ The same design fits OpenWren.
 
 ### 6.2 The daily ping
 
-One HTTPS request a day, at a random time, to `stats.openwren.org`.
+One HTTPS request a day, at a random time, to `stats.openwren.app`.
 
 | Field | Example | Why |
 |---|---|---|
@@ -247,7 +247,7 @@ Never collected, under any setting: addresses, names, subjects, mail text, conta
 ### 6.4 The server and dashboard
 
 - **Server:** a very small open-source service (`openwren/stats`), for example a Cloudflare Worker or a single Rust binary, that validates the fields against fixed lists and increments counters in a database.
-- **Dashboard:** public at `stats.openwren.org`, so users see exactly what the project sees.
+- **Dashboard:** public at `stats.openwren.app`, so users see exactly what the project sees.
 
 ### 6.5 In the app
 
@@ -279,7 +279,7 @@ Recommendation on the default: ask at first start rather than switching it on si
 
 ## 8. Decisions needed from you
 
-1. **Organisation and domain names:** `openwren` on GitHub and `openwren.org`, if free.
+1. **Organisation and domain names:** `openwren` on GitHub and `openwren.app`, if free.
 2. **Statistics default:** ask at first start (recommended), or on by default with a notice as Brave does.
 3. **Gmail for everyone:** apply for Google's verification (months, and a paid security assessment for the mail scope), or keep "bring your own client ID".
 4. **Build infrastructure:** our own APT/RPM pipeline, or try the openSUSE Build Service first.

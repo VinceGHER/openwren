@@ -40,7 +40,7 @@ const good = { v: "0.1.0", pkg: "deb", os: "ubuntu-24.04", arch: "x86_64", d: tr
 const at = (iso: string) => new Date(iso);
 const post = (body: unknown, now = at("2026-11-13T10:00:00Z"), headers: Record<string, string> = {}) =>
   handle(
-    new Request("https://stats.openwren.org/ping", {
+    new Request("https://stats.openwren.app/ping", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...headers },
       body: typeof body === "string" ? body : JSON.stringify(body),
@@ -49,7 +49,7 @@ const post = (body: unknown, now = at("2026-11-13T10:00:00Z"), headers: Record<s
     now,
   );
 const get = (path: string, now = at("2026-11-13T10:00:00Z"), headers: Record<string, string> = {}) =>
-  handle(new Request(`https://stats.openwren.org${path}`, { headers }), env, now);
+  handle(new Request(`https://stats.openwren.app${path}`, { headers }), env, now);
 const rows = () => db.prepare("SELECT * FROM counters ORDER BY day, v, os").all() as Record<string, unknown>[];
 
 describe("POST /ping", () => {
@@ -142,7 +142,7 @@ describe("GET /api/daily", () => {
   it("allows the website and localhost to read it, and nobody else", async () => {
     const allow = async (origin?: string) =>
       (await get("/api/daily?days=1", undefined, origin ? { Origin: origin } : {})).headers.get("Access-Control-Allow-Origin");
-    expect(await allow("https://openwren.org")).toBe("https://openwren.org");
+    expect(await allow("https://openwren.app")).toBe("https://openwren.app");
     expect(await allow("http://localhost:4321")).toBe("http://localhost:4321");
     expect(await allow("https://evil.example")).toBeNull();
     expect(await allow()).toBeNull();
@@ -158,7 +158,7 @@ describe("routing", () => {
     const wrongPing = await get("/ping");
     expect(wrongPing.status).toBe(405);
     expect(wrongPing.headers.get("Allow")).toBe("POST");
-    const wrongDaily = await handle(new Request("https://stats.openwren.org/api/daily", { method: "POST", body: "{}" }), env);
+    const wrongDaily = await handle(new Request("https://stats.openwren.app/api/daily", { method: "POST", body: "{}" }), env);
     expect(wrongDaily.status).toBe(405);
     expect(wrongDaily.headers.get("Allow")).toBe("GET");
   });

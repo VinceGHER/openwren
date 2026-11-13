@@ -21,13 +21,10 @@ invocation_logs = false
 [[d1_databases]]
 binding = "DB"
 database_name = "openwren-stats"
-# Replace with the id printed by `wrangler d1 create openwren-stats` before
-# deploying. Local development (`wrangler dev --local`) does not use it.
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "39744b72-f4b0-40d2-b609-698ce632e51a"
 migrations_dir = "migrations"
 
-# Uncomment when deploying, once the openwren.org zone is on the Cloudflare
-# account. This attaches the custom domain on `wrangler deploy`.
-# [[routes]]
-# pattern = "stats.openwren.org"
-# custom_domain = true
+# The service's own address; attached on `wrangler deploy`.
+[[routes]]
+pattern = "stats.openwren.app"
+custom_domain = true

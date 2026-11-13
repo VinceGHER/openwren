@@ -14,7 +14,7 @@ How a tag becomes signed apt and rpm repositories, an AppImage and a GitHub Rele
 
 Both scripts take the signing key from the environment variable `OPENWREN_GPG_KEY` (key id or fingerprint) and keep what is already in the output directory: old versions stay installable, and the index is rebuilt from everything present. That is why the release workflow downloads the bucket before running them.
 
-The repositories are plain files in a Cloudflare R2 bucket served at `packages.openwren.org`:
+The repositories are plain files in the Cloudflare R2 bucket `openwren-packages`, served read-only at `packages.openwren.app` by the small Worker in `packages/`:
 
 ```
 key.gpg  key.asc                 public signing key (binary and armored)
@@ -36,7 +36,7 @@ One GPG key signs the packages and the repository indexes. Create it without a p
 
 ```bash
 export GNUPGHOME=$(mktemp -d)        # keep it out of your everyday keyring
-gpg --batch --passphrase '' --quick-generate-key "OpenWren Packages <packages@openwren.org>" rsa4096 sign 2y
+gpg --batch --passphrase '' --quick-generate-key "OpenWren Packages <packages@openwren.app>" rsa4096 sign 2y
 
 gpg --list-secret-keys --with-colons | awk -F: '/^fpr/ {print $10; exit}'   # the fingerprint
 gpg --armor --export <FINGERPRINT> > key.asc                                 # public part
@@ -47,7 +47,7 @@ Publish the fingerprint on the website so users can compare it. Keep a copy of `
 
 ### 2. Cloudflare R2
 
-1. Create an R2 bucket and connect the custom domain `packages.openwren.org` to it.
+1. The R2 bucket `openwren-packages` exists and is served at `packages.openwren.app` by the Worker in `packages/` (`wrangler deploy` there after changing it).
 2. Create an R2 API token with "Object Read & Write" on that bucket only. Note the access key id, the secret access key and the Cloudflare account id.
 
 ### 3. GitHub repository settings
@@ -90,15 +90,15 @@ The release workflow then publishes a GitHub Release with the `.deb`, `.rpm`, `.
 Debian, Ubuntu and derivatives:
 
 ```bash
-curl -fsSL https://packages.openwren.org/key.gpg | sudo tee /usr/share/keyrings/openwren.gpg > /dev/null
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/openwren.gpg] https://packages.openwren.org/apt stable main" | sudo tee /etc/apt/sources.list.d/openwren.list
+curl -fsSL https://packages.openwren.app/key.gpg | sudo tee /usr/share/keyrings/openwren.gpg > /dev/null
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/openwren.gpg] https://packages.openwren.app/apt stable main" | sudo tee /etc/apt/sources.list.d/openwren.list
 sudo apt update && sudo apt install openwren
 ```
 
 Fedora, RHEL and derivatives (dnf or yum):
 
 ```bash
-sudo curl -fsSL -o /etc/yum.repos.d/openwren.repo https://packages.openwren.org/rpm/openwren.repo
+sudo curl -fsSL -o /etc/yum.repos.d/openwren.repo https://packages.openwren.app/rpm/openwren.repo
 sudo dnf install openwren
 ```
 

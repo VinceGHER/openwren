@@ -1,88 +1,65 @@
-# Going live: what is left to do outside the code
+# Going live: what is on the internet, and what is left
 
-Everything in the repository works locally. These steps put it on the internet. Each needs an account or a payment that only the project owner can make.
+Status on 13 November 2026: the domain `openwren.app` is on the project's Cloudflare account and three services run under it.
 
-Status on 13 November 2026: the Cloudflare account has no D1 database and no Worker yet, and R2 storage is not switched on. `openwren.org` is not registered.
+| Name | Serves | Deployed from |
+|---|---|---|
+| `openwren.app`, `www.openwren.app` | The website | `website/` (static files as a Worker) |
+| `stats.openwren.app` | The usage counter, with the D1 database `openwren-stats` | `stats/` |
+| `packages.openwren.app` | The apt and rpm repositories, files in the R2 bucket `openwren-packages` | `packages/` (read-only file server) |
 
-## 1. Domain
+The website is public although the repository is still private, so its links to the code do not work for visitors yet.
 
-1. Register `openwren.org` (Cloudflare Registrar keeps the DNS in the same place as everything else). `openwren.app`, `.io` and `.dev` were also free; `.com` is taken.
-2. Add the domain to the Cloudflare account, if it was registered elsewhere.
+## Deploying again
 
-The app, the website and the documentation already point at three names under it:
-
-| Name | Serves |
-|---|---|
-| `openwren.org` | The website (Cloudflare Pages) |
-| `stats.openwren.org` | The usage counter (Cloudflare Worker) |
-| `packages.openwren.org` | The apt and rpm repositories (Cloudflare R2) |
-
-Until the domain exists, the app's daily usage request fails silently and nothing is counted.
-
-## 2. Usage counter (`stats/`)
-
-From the `stats/` folder, signed in with `wrangler login`:
-
-```bash
-pnpm install
-```
-
-```bash
-pnpm wrangler d1 create openwren-stats
-```
-
-Put the database id it prints into `wrangler.toml` (`database_id`), then:
-
-```bash
-pnpm wrangler d1 migrations apply openwren-stats --remote
-```
+Sign in once with `pnpm wrangler login` in `stats/`. Then, from `stats/`:
 
 ```bash
 pnpm wrangler deploy
 ```
 
-Finally uncomment the `routes` block in `wrangler.toml` (custom domain `stats.openwren.org`) and deploy again. Check it:
-
 ```bash
-curl -s https://stats.openwren.org/api/daily?days=7
+pnpm --dir ../website build && pnpm wrangler deploy --cwd ../website
 ```
 
-Details and what is stored: [stats/README.md](../stats/README.md).
+```bash
+pnpm wrangler deploy --cwd ../packages
+```
 
-## 3. Website (`website/`)
+Nothing deploys automatically yet: a change to the website goes live only when the second command is run.
 
-In the Cloudflare dashboard: Workers & Pages → Create → Pages → Connect to Git → `VinceGHER/openwren`.
+## Packages
 
-| Setting | Value |
-|---|---|
-| Root directory | `website` |
-| Build command | `pnpm install --frozen-lockfile && pnpm build` |
-| Output directory | `dist` |
-| Environment variable | `NODE_VERSION` = `22` |
-| Custom domain | `openwren.org` |
+The signing key exists: fingerprint `8991 7136 148C 9676 F3A5 1B21 4B8A FB6E 4238 18E0`, valid until November 2028. Its private part is in the GitHub secret `GPG_PRIVATE_KEY` and in `~/.local/share/openwren-signing` on the computer that created it. Keep a copy of that folder somewhere safe and offline; without it no later release can be signed with the same key.
 
-While the project is private, restrict the site with Cloudflare Access (Zero Trust → Access → add an application for `openwren.org`, allow your own address), or simply do not attach the custom domain yet.
+Version 0.1.0 in the repositories was built by hand on a recent system, so it installs on Ubuntu 24.04 and Fedora but not on Debian 12 or Ubuntu 22.04. The release workflow builds on Ubuntu 22.04 and replaces it.
 
-## 4. Packages (`scripts/`, `.github/workflows/release.yml`)
+Still to do before the release workflow can upload:
 
-1. Switch on R2 in the Cloudflare dashboard (it asks for a payment method; the free allowance covers this use).
-2. Create a bucket, for example `openwren-packages`, and connect the custom domain `packages.openwren.org` to it.
-3. Create an R2 API token with read and write access to that bucket.
-4. Create the signing key and add the secrets to the GitHub repository. The exact commands and secret names are in [packaging.md](packaging.md).
-5. Put the key's fingerprint on the website's Download page (it has a marked placeholder).
-6. Cut a release:
+1. In the Cloudflare dashboard: R2 → Manage API tokens → create a token with "Object Read & Write" on `openwren-packages` only.
+2. Add its two values to the repository:
+
+```bash
+gh secret set R2_ACCESS_KEY_ID
+```
+
+```bash
+gh secret set R2_SECRET_ACCESS_KEY
+```
+
+3. Cut a release. The workflow has never run; expect to fix small things on its first run.
 
 ```bash
 git tag v0.1.0 && git push --tags
 ```
 
-The release workflow has never run. Expect to fix small things on its first run.
+Details: [packaging.md](packaging.md).
 
-## 5. Gmail sign-in for everyone (later)
+## Gmail sign-in for everyone (later)
 
 Today Gmail works for everyone through an app password. One-click "Sign in with Google" needs Google to approve the app for full mail access. When you decide to start:
 
-1. Website live on `openwren.org` with the privacy page, and the domain verified in Google Search Console.
+1. Website live on `openwren.app` with the privacy page, and the domain verified in Google Search Console.
 2. In Google Cloud: OAuth consent screen set to External and In production, with app name, logo, home page, privacy policy and the scope `https://mail.google.com/`.
 3. Submit for verification: a written justification for the scope and a demo video of the sign-in and of how mail data is used.
 4. Pass the yearly security assessment Google requires for restricted scopes (a paid review by an approved lab).
@@ -90,7 +67,7 @@ Today Gmail works for everyone through an app password. One-click "Sign in with 
 
 Until approval, a project in "Testing" allows at most 100 named test users and their sign-in expires every week.
 
-## 6. Before making the repository public
+## Before making the repository public
 
 - Check the name once more: another project uses "openwren" for an AI assistant bot (GitHub `openwrenai/openwren`, npm `openwren`). Consider registering the name as a trademark; see [TRADEMARKS.md](../TRADEMARKS.md).
 - Get an outside security review of mail rendering and the unsubscribe request.

@@ -67,11 +67,11 @@ Packages are not published yet. Until the first release, build from source
 **Debian, Ubuntu and derivatives**
 
 ```bash
-curl -fsSL https://packages.openwren.org/key.gpg | sudo tee /usr/share/keyrings/openwren.gpg > /dev/null
+curl -fsSL https://packages.openwren.app/key.gpg | sudo tee /usr/share/keyrings/openwren.gpg > /dev/null
 ```
 
 ```bash
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/openwren.gpg] https://packages.openwren.org/apt stable main" | sudo tee /etc/apt/sources.list.d/openwren.list
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/openwren.gpg] https://packages.openwren.app/apt stable main" | sudo tee /etc/apt/sources.list.d/openwren.list
 ```
 
 ```bash
@@ -81,7 +81,7 @@ sudo apt update && sudo apt install openwren
 **Fedora and other dnf systems**
 
 ```bash
-sudo curl -fsSL -o /etc/yum.repos.d/openwren.repo https://packages.openwren.org/rpm/openwren.repo
+sudo curl -fsSL -o /etc/yum.repos.d/openwren.repo https://packages.openwren.app/rpm/openwren.repo
 ```
 
 ```bash
@@ -253,7 +253,7 @@ src-tauri/src/       engine (Rust)
   parse.rs           reading and cleaning mail
   smtp.rs oauth.rs   sending, Google sign-in
 stats/               the usage counter (Cloudflare Worker)
-website/             openwren.org (Astro)
+website/             openwren.app (Astro)
 ```
 
 ## Tests

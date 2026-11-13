@@ -6,7 +6,7 @@ works the way the Brave browser counts its users. The app sends at most one
 small request a day that carries no identifier, and this service adds one to a
 counter. The requests themselves are never kept.
 
-It will run at `https://stats.openwren.org`.
+It will run at `https://stats.openwren.app`.
 
 ## What is stored, and what is not
 
@@ -91,7 +91,7 @@ with fewer than 5 is added into a single `other` entry, together with what was
 already stored as `other`, so small groups cannot be singled out. The `other`
 entry is sorted by its count like any other.
 
-The response allows cross-site `GET` from `https://openwren.org` and from
+The response allows cross-site `GET` from `https://openwren.app` and from
 `http://localhost` on any port, and is cacheable for 10 minutes
 (`Cache-Control: public, max-age=600`).
 
@@ -142,26 +142,19 @@ pnpm exec wrangler d1 execute openwren-stats --local --command 'SELECT * FROM co
 
 Delete `stats/.wrangler/` to start again with an empty local database.
 
-## Deploy (for the owner, later)
+## Deploy
 
-Run these from `stats/`. They need a Cloudflare account that has the
-`openwren.org` zone.
+The service is live at `stats.openwren.app`; its database id and the route are
+in `wrangler.toml`. To deploy a change, from `stats/`:
 
-1. Log in: `pnpm exec wrangler login`
-2. Create the database: `pnpm exec wrangler d1 create openwren-stats`
-3. Copy the `database_id` it prints into `wrangler.toml`, replacing the
-   placeholder `00000000-0000-0000-0000-000000000000`.
-4. Create the table in the real database:
+1. Log in once: `pnpm exec wrangler login`
+2. If a migration was added:
    `pnpm exec wrangler d1 migrations apply openwren-stats --remote`
-5. In `wrangler.toml`, uncomment the `[[routes]]` block for
-   `stats.openwren.org` (`custom_domain = true`). This is what attaches the
-   custom domain; Cloudflare creates the DNS record and certificate on deploy.
-6. Deploy: `pnpm exec wrangler deploy`
-7. Check it:
-   `curl -s 'https://stats.openwren.org/api/daily?days=1'` should return one
-   day of zeros.
+3. Deploy: `pnpm exec wrangler deploy`
+4. Check it:
+   `curl -s 'https://stats.openwren.app/api/daily?days=1'`
 
 Keep `[observability]` disabled in `wrangler.toml`, and do not add Logpush or
-other request logging on the `stats.openwren.org` hostname in the Cloudflare
+other request logging on the `stats.openwren.app` hostname in the Cloudflare
 dashboard: either would keep per-request records that this service promises
 not to keep.

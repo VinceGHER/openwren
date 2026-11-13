@@ -15,8 +15,8 @@
 # respected) and have no passphrase.
 set -euo pipefail
 
-base_url=https://packages.openwren.org/rpm
-key_url=https://packages.openwren.org/key.asc
+base_url=https://packages.openwren.app/rpm
+key_url=https://packages.openwren.app/key.asc
 
 if [ $# -ne 2 ]; then
   echo "usage: OPENWREN_GPG_KEY=<key> $0 <dir-with-rpms> <output-dir>" >&2

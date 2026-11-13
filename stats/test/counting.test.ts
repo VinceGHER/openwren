@@ -161,8 +161,8 @@ describe("foldSmall", () => {
 
 describe("allowedOrigin", () => {
   it("allows the website and localhost on any port only", () => {
-    for (const ok of ["https://openwren.org", "http://localhost:4321", "http://localhost"]) expect(allowedOrigin(ok)).toBe(ok);
-    for (const no of [null, "http://openwren.org", "https://evil.example", "https://localhost:3000", "http://localhost.evil.example", "http://localhost:3000.evil.example", "https://openwren.org.evil.example"]) {
+    for (const ok of ["https://openwren.app", "http://localhost:4321", "http://localhost"]) expect(allowedOrigin(ok)).toBe(ok);
+    for (const no of [null, "http://openwren.app", "https://evil.example", "https://localhost:3000", "http://localhost.evil.example", "http://localhost:3000.evil.example", "https://openwren.app.evil.example"]) {
       expect(allowedOrigin(no)).toBeNull();
     }
   });

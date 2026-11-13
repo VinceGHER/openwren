@@ -1,6 +1,6 @@
 # OpenWren website
 
-The static site for [openwren.org](https://openwren.org), built with [Astro](https://astro.build). It is plain HTML and CSS; only the Stats page uses JavaScript. No cookies, no analytics, no third-party scripts or fonts (Inter is bundled from `@fontsource-variable/inter`).
+The static site for [openwren.app](https://openwren.app), built with [Astro](https://astro.build). It is plain HTML and CSS; only the Stats page uses JavaScript. No cookies, no analytics, no third-party scripts or fonts (Inter is bundled from `@fontsource-variable/inter`).
 
 ## Run and build
 
@@ -28,7 +28,7 @@ The layout, header and footer are in `src/layouts/Base.astro`; colours and type 
 
 ## Stats page
 
-The page fetches `GET {STATS_URL}/api/daily?days=90` in the browser. `STATS_URL` is `https://stats.openwren.org` unless the environment variable `PUBLIC_STATS_URL` is set at build time. The Worker must allow cross-origin requests from `https://openwren.org` (an `Access-Control-Allow-Origin` header), or the page shows "The numbers could not be loaded".
+The page fetches `GET {STATS_URL}/api/daily?days=90` in the browser. `STATS_URL` is `https://stats.openwren.app` unless the environment variable `PUBLIC_STATS_URL` is set at build time. The Worker must allow cross-origin requests from `https://openwren.app` (an `Access-Control-Allow-Origin` header), or the page shows "The numbers could not be loaded".
 
 ### Checking it without the Worker
 
@@ -58,16 +58,15 @@ The logo `public/openwren-logo.svg` is a copy of `design/openwren-logo.svg` and 
 
 ## Placeholders to fill in
 
-- The signing-key fingerprint on the Download page (`src/pages/download.astro`, marked "Placeholder").
 - The three screenshots above.
 
-## Cloudflare Pages
+## Deploying
 
-| Setting | Value |
-|---|---|
-| Root directory | `website` |
-| Build command | `pnpm install --frozen-lockfile && pnpm build` |
-| Build output directory | `dist` |
-| Framework preset | Astro (or none) |
-| Environment variable | `NODE_VERSION` = `22` or later; leave `PUBLIC_STATS_URL` unset to use `https://stats.openwren.org` |
-| Custom domain | `openwren.org` |
+The site is served at `openwren.app` as static files (`wrangler.toml`). After a change:
+
+```bash
+pnpm build && pnpm dlx wrangler deploy
+```
+
+Leave `PUBLIC_STATS_URL` unset to use `https://stats.openwren.app`.
+

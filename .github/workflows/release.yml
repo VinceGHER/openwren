@@ -1,7 +1,7 @@
 name: Release
 
 # A tag such as v0.2.0 builds the packages, publishes a GitHub Release and
-# updates the apt and rpm repositories at packages.openwren.org.
+# updates the apt and rpm repositories at packages.openwren.app.
 # Setup (secrets, variables, signing key): docs/packaging.md
 
 on:

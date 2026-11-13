@@ -16,7 +16,7 @@ OpenWren keeps your mail on your computer. This page lists every network request
 | Google sign-in | Only if you choose to sign in with Google | Google |
 | Remote images | Only when you click "Show images" on a message | The servers the message points to |
 | Unsubscribe | Only when you confirm that you want to unsubscribe from a mailing | The mailing's sender |
-| Anonymous usage request | Once a day, unless you switch it off | `stats.openwren.org` |
+| Anonymous usage request | Once a day, unless you switch it off | `stats.openwren.app` |
 
 There are no others. Sender logos for well-known companies are bundled with the app and are not fetched online.
 
@@ -70,4 +70,4 @@ OpenWren never collects:
 
 ## This website
 
-This site sets no cookies and uses no analytics, no third-party scripts and no third-party fonts. The stats page fetches public totals from `stats.openwren.org`.
+This site sets no cookies and uses no analytics, no third-party scripts and no third-party fonts. The stats page fetches public totals from `stats.openwren.app`.
