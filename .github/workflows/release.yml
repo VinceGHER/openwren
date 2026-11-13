@@ -275,10 +275,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --title "OpenWren ${GITHUB_REF_NAME#v}" \
-            --generate-notes \
-            release/*.deb release/*.rpm release/*.AppImage release/*.exe release/*.dmg release/SHA256SUMS
+          # Safe to run again: a rerun after a failed upload finds the release already there.
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" --clobber \
+              release/*.deb release/*.rpm release/*.AppImage release/*.exe release/*.dmg release/SHA256SUMS
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --title "OpenWren ${GITHUB_REF_NAME#v}" \
+              --generate-notes \
+              release/*.deb release/*.rpm release/*.AppImage release/*.exe release/*.dmg release/SHA256SUMS
+          fi
 
       - name: Upload the repositories
         env:
@@ -289,12 +295,21 @@ jobs:
           AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
           R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
         run: |
+          # The storage service sometimes times out on a large file: try each step up to four times.
+          retry() {
+            for attempt in 1 2 3 4; do
+              "$@" && return 0
+              echo "::warning::attempt $attempt failed: $1 $2 $3"
+              sleep $((attempt * 20))
+            done
+            return 1
+          }
           # Packages first, indexes and the version file last, so nothing names a file that is not there yet.
-          aws s3 sync site/ "s3://$R2_BUCKET/" --endpoint-url "$R2_ENDPOINT" --no-progress \
+          retry aws s3 sync site/ "s3://$R2_BUCKET/" --endpoint-url "$R2_ENDPOINT" --no-progress \
             --exclude "apt/dists/*" --exclude "rpm/repodata/*" --exclude "latest.json"
-          aws s3 sync site/apt/dists/ "s3://$R2_BUCKET/apt/dists/" --endpoint-url "$R2_ENDPOINT" --no-progress \
+          retry aws s3 sync site/apt/dists/ "s3://$R2_BUCKET/apt/dists/" --endpoint-url "$R2_ENDPOINT" --no-progress \
             --cache-control "max-age=300"
-          aws s3 sync site/rpm/repodata/ "s3://$R2_BUCKET/rpm/repodata/" --endpoint-url "$R2_ENDPOINT" --no-progress \
+          retry aws s3 sync site/rpm/repodata/ "s3://$R2_BUCKET/rpm/repodata/" --endpoint-url "$R2_ENDPOINT" --no-progress \
             --cache-control "max-age=300" --delete
-          aws s3 cp site/latest.json "s3://$R2_BUCKET/latest.json" --endpoint-url "$R2_ENDPOINT" --no-progress \
+          retry aws s3 cp site/latest.json "s3://$R2_BUCKET/latest.json" --endpoint-url "$R2_ENDPOINT" --no-progress \
             --cache-control "max-age=300" --content-type "application/json"
