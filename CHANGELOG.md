@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+
+- On macOS, keyboard shortcuts use the Command key, and hints show it.
+- The first version that earlier installs are told about by the update notice.
+
 ## 0.1.4
 
 - OpenWren tells you when a new version is out, in the sidebar and in Settings, About.
