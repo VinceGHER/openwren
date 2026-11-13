@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- The anonymous daily usage request is sent within 30 seconds of starting, not after several minutes.
+
 ## 0.1.2
 
 Security fixes from a review before the public release.
