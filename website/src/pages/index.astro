@@ -6,10 +6,10 @@ import { REPO_URL } from '../site';
 
 <Base>
   <section class="hero">
-    <h1>A free, open-source mail app for Linux that keeps your mail on your computer</h1>
+    <h1>A modern, free, open-source mail app for Linux that keeps your mail on your computer</h1>
     <p class="lead">
-      OpenWren is a desktop mail client for IMAP accounts and Gmail. It syncs your mail to an encrypted database on your
-      own machine and talks only to your mail servers.
+      OpenWren is a modern desktop mail app for Gmail and any IMAP account. It is fast, it syncs your mail to an
+      encrypted database on your own machine, and it talks only to your mail servers.
     </p>
     <div class="actions">
       <a class="button" href="/download/">Download</a>
@@ -48,6 +48,32 @@ import { REPO_URL } from '../site';
         lists every network request the app makes.
       </p>
     </article>
+  </section>
+
+  <section class="fast">
+    <h2>Fast</h2>
+    <p class="muted">
+      Measured with the project's own benchmarks on an encrypted mailbox of 200,000 messages, on a laptop. The
+      <a href={`${REPO_URL}/blob/main/docs/benchmarks.md`}>method and full results</a> are in the repository.
+    </p>
+    <dl>
+      <div>
+        <dt>0.6 s</dt>
+        <dd>From starting the app until the inbox is on screen</dd>
+      </div>
+      <div>
+        <dt>0.1 ms</dt>
+        <dd>To open a folder</dd>
+      </div>
+      <div>
+        <dt>30 ms</dt>
+        <dd>To search for a word found in a few hundred messages</dd>
+      </div>
+      <div>
+        <dt>14 MB</dt>
+        <dd>Download size</dd>
+      </div>
+    </dl>
   </section>
 
   <section class="pair">
@@ -92,6 +118,29 @@ import { REPO_URL } from '../site';
         <dd>The interface is written in React and TypeScript.</dd>
       </div>
     </dl>
+  </section>
+
+  <section class="stars">
+    <h2>Star the project</h2>
+    <p class="muted">
+      A star on GitHub is the simplest way to help OpenWren get found.
+      <a href={REPO_URL}>Star it on GitHub</a>.
+    </p>
+    <a href="https://www.star-history.com/?repos=vincegher%2Fopenwren&type=date&legend=top-left">
+      <picture>
+        <source
+          media="(prefers-color-scheme: dark)"
+          srcset="https://api.star-history.com/chart?repos=vincegher/openwren&type=date&theme=dark&legend=top-left"
+        />
+        <img
+          alt="Chart of the project's GitHub stars over time"
+          src="https://api.star-history.com/chart?repos=vincegher/openwren&type=date&legend=top-left"
+          loading="lazy"
+          width="800"
+          height="533"
+        />
+      </picture>
+    </a>
   </section>
 
   <section class="closing">
@@ -149,6 +198,39 @@ import { REPO_URL } from '../site';
   .rust dd {
     margin: 4px 0 0;
     color: var(--text-2);
+  }
+  .fast {
+    margin-top: 56px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .fast dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 20px 32px;
+    margin: 1.25rem 0 0;
+  }
+  .fast dt {
+    font-size: 1.9rem;
+    font-weight: 680;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .fast dd {
+    margin: 2px 0 0;
+    color: var(--text-2);
+  }
+  .stars {
+    margin-top: 56px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .stars img {
+    display: block;
+    width: 100%;
+    max-width: 640px;
+    height: auto;
+    margin-top: 1rem;
   }
   .closing {
     margin-top: 56px;

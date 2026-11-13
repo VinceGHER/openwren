@@ -5,4 +5,71 @@ interface Props {
 const { code } = Astro.props;
 ---
 
-<pre><code set:text={code} /></pre>
+<div class="command">
+  <pre><code set:text={code} /></pre>
+  <button type="button" class="copy" data-copy={code} aria-label="Copy command" title="Copy">
+    <svg class="icon-copy" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="8" y="8" width="12" height="12" rx="2"></rect>
+      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path>
+    </svg>
+    <svg class="icon-done" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M5 12l5 5L20 7"></path>
+    </svg>
+  </button>
+</div>
+
+<script>
+  for (const button of document.querySelectorAll<HTMLButtonElement>('button.copy')) {
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy ?? '');
+      } catch {
+        return; // no clipboard access: the text can still be selected by hand
+      }
+      button.classList.add('copied');
+      button.setAttribute('aria-label', 'Copied');
+      setTimeout(() => {
+        button.classList.remove('copied');
+        button.setAttribute('aria-label', 'Copy command');
+      }, 1500);
+    });
+  }
+</script>
+
+<style>
+  .command {
+    position: relative;
+  }
+  .command pre {
+    padding-right: 48px;
+  }
+  .copy {
+    position: absolute;
+    top: calc(0.75rem + 7px);
+    right: 7px;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text-2);
+    cursor: pointer;
+  }
+  .copy:hover {
+    color: var(--text);
+  }
+  .copy .icon-done {
+    display: none;
+  }
+  .copy.copied {
+    color: var(--accent, #256ef3);
+  }
+  .copy.copied .icon-copy {
+    display: none;
+  }
+  .copy.copied .icon-done {
+    display: block;
+  }
+</style>

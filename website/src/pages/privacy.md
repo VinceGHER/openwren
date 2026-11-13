@@ -70,4 +70,4 @@ OpenWren never collects:
 
 ## This website
 
-This site sets no cookies and uses no analytics, no third-party scripts and no third-party fonts. The stats page fetches public totals from `stats.openwren.app`.
+This site sets no cookies and uses no analytics, no third-party scripts and no third-party fonts. The stats page fetches public totals from `stats.openwren.app`. The home page shows one picture, the chart of GitHub stars, that your browser loads from `api.star-history.com`.

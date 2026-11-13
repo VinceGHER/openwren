@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="docs/cover.png" alt="OpenWren: mail that stays yours. A free, open-source mail app for Linux, built with Rust and React.">
+  <img src="docs/cover.png" alt="OpenWren: mail that stays yours. A modern, free, open-source mail app for Linux, built with Rust and React.">
 </p>
 
 # OpenWren
 
-A free, open-source mail app for Linux that keeps your mail on your computer.
-It is built with **Rust** (the engine: sync, search, encryption) and **React**
+A modern, free, open-source mail app for Linux that keeps your mail on your
+computer. It is built with **Rust** (the engine: sync, search, encryption) and **React**
 (the interface), which makes it small and fast: a 14 MB download that starts in
 about half a second.
 
