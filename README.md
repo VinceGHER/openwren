@@ -1,23 +1,31 @@
 <p align="center">
-  <img src="design/openwren-logo.svg" alt="OpenWren logo" width="96">
+  <img src="docs/cover.png" alt="OpenWren: mail that stays yours. A free, open-source mail app for Linux, built with Rust and React.">
 </p>
 
 # OpenWren
 
 A free, open-source mail app for Linux that keeps your mail on your computer.
-Gmail and any IMAP account, one inbox for all of them, search that reaches
-back years, and protection against trackers and phishing built in.
+It is built with **Rust** (the engine: sync, search, encryption) and **React**
+(the interface), which makes it small and fast: a 14 MB download that starts in
+about half a second.
 
-If you like it, please star it.
+Gmail and any IMAP account, one inbox for all of them, search that reaches back
+years, and protection against trackers and phishing built in.
 
-| Inbox | A suspicious message |
+**If you like it, please star it.** It is the simplest way to help the project
+get found.
+
+<a href="https://www.star-history.com/?repos=vincegher%2Fopenwren&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=vincegher/openwren&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=vincegher/openwren&type=date&legend=top-left" />
+   <img alt="Star history chart" src="https://api.star-history.com/chart?repos=vincegher/openwren&type=date&legend=top-left" />
+ </picture>
+</a>
+
+| Light | Dark |
 | --- | --- |
-| ![The inbox with a message open](docs/inbox.png) | ![A message flagged as suspicious, with the reasons listed](docs/warning.png) |
-
-<p align="center">
-  <img src="docs/welcome.png" alt="The welcome screen" width="49%">
-  <img src="docs/inbox-dark.png" alt="The inbox in the dark theme" width="49%">
-</p>
+| ![The inbox with a message open](docs/inbox.png) | ![The inbox in the dark theme](docs/inbox-dark.png) |
 
 ## Why OpenWren
 
@@ -113,15 +121,88 @@ Passwords are stored in the system keyring, never in OpenWren's files.
 
 ## Features
 
-| | |
-| --- | --- |
-| Accounts | Gmail and IMAP, several at once, "All inboxes", favourites |
-| Reading | Three panes, conversations, unread and flagged filters, mailings under "Other" |
-| Search | The whole mailbox, with `from:`, `to:`, `subject:`, `has:attachment`, `is:unread`, `before:2024-01-31`, `in:folder`, and server search for text not downloaded yet |
-| Writing | Rich text, quick reply under each message, signatures with a picture, attachments, undo send, send later, drafts kept on the server |
-| Organising | Archive, delete, move, drag and drop, snooze, pin, colour categories, rules, mark a folder read, undo |
-| Protection | Tracking pixels and tracking link codes removed; warnings for forged senders, look-alike addresses and misleading links; block a sender or a domain; one-click unsubscribe; programs in attachments are never opened |
-| Look | Light and dark, three fonts, text size, 24-hour or AM/PM, tray icon with notifications |
+<table>
+<tr>
+<td width="46%"><img src="docs/features/accounts.png" alt="The sidebar with All inboxes and three accounts"></td>
+<td>
+
+**All your accounts, one inbox**
+
+Gmail and any IMAP account side by side. "All inboxes" shows every account's mail together; star the folders you use most to keep them at the top.
+
+</td>
+</tr>
+<tr>
+<td width="46%"><img src="docs/features/search.png" alt="Search results for the word invoice with filter chips"></td>
+<td>
+
+**Search that reaches back years**
+
+Every message is indexed on your computer, however old. Narrow by account, attachment or date, or type `from:`, `subject:`, `has:attachment`, `before:2024-01-31`. Text that is not downloaded yet can be searched on the server.
+
+</td>
+</tr>
+<tr>
+<td width="46%"><img src="docs/features/phishing.png" alt="A message with a warning listing three reasons it is suspicious"></td>
+<td>
+
+**Warns you before you click**
+
+A message is flagged when your mail server could not confirm the sender, when the name claims to be a company the address does not belong to, when a link shows one site but leads to another, or when an address imitates a known one with look-alike letters. One click blocks the sender.
+
+</td>
+</tr>
+<tr>
+<td width="46%"><img src="docs/features/trackers.png" alt="A mailing with trackers removed and an Unsubscribe button"></td>
+<td>
+
+**Removes trackers, offers unsubscribe**
+
+Hidden images that report when you open a message are removed, and tracking codes are stripped from links. Pictures from the internet load only when you ask. Mailings get an Unsubscribe button that sends the request for you.
+
+</td>
+</tr>
+<tr>
+<td width="46%"><img src="docs/features/writing.png" alt="The composer with a message being written"></td>
+<td>
+
+**Write with less friction**
+
+Rich text, signatures (with a picture if you like), attachments, send later, and a few seconds to undo a send. Drafts are saved as you type and kept on the server. A quick reply box sits under every message.
+
+</td>
+</tr>
+<tr>
+<td width="46%"><img src="docs/features/organise.png" alt="The more menu with Move to, colour categories, flag, pin and block"></td>
+<td>
+
+**Keep on top of it**
+
+Archive, delete and snooze are one click. Move by menu or by dragging onto a folder, mark with colours, pin, flag, set rules for new mail, and undo any of it.
+
+</td>
+</tr>
+<tr>
+<td width="46%"><img src="docs/features/privacy.png" alt="The Privacy page in Settings"></td>
+<td>
+
+**Private, and you can check**
+
+Mail is stored in an encrypted database; passwords stay in the system keyring. Every protection has a switch, and Settings shows exactly what the one anonymous daily request contains.
+
+</td>
+</tr>
+<tr>
+<td width="46%"><img src="docs/features/../welcome.png" alt="The welcome screen"></td>
+<td>
+
+**Set up in a minute**
+
+A short welcome adds your first account and lets you pick the theme, text size and time format. Light and dark themes, three fonts, and a tray icon that keeps new-mail notifications coming.
+
+</td>
+</tr>
+</table>
 
 ## Privacy
 
@@ -196,8 +277,8 @@ OPENWREN_TEST_IMAP=127.0.0.1:3143 OPENWREN_TEST_SMTP=127.0.0.1:3025 cargo test -
 ```
 
 `pnpm dev` runs the interface in a browser on sample mail, with no mail server
-and no desktop app. `node scripts/screenshots.mjs` takes the screenshots above
-from it.
+and no desktop app. `node scripts/screenshots.mjs` takes every picture in this
+README from it, including the cover.
 
 ## Contributing
 
