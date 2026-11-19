@@ -1,0 +1,38 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "discard": "Discard",
+    "search": "Search mail (e.g. from:Alice has:attachment)"
+  },
+  "nav": {
+    "allInboxes": "All inboxes",
+    "inbox": "Inbox",
+    "drafts": "Drafts",
+    "sent": "Sent",
+    "archive": "Archive",
+    "trash": "Trash",
+    "junk": "Junk",
+    "custom": "Custom"
+  },
+  "dates": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This week"
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "language": "Language",
+    "languageDesc": "Select user interface language",
+    "theme": "Theme",
+    "accounts": "Accounts"
+  },
+  "composer": {
+    "to": "To",
+    "subject": "Subject",
+    "send": "Send",
+    "sendLater": "Send later"
+  }
+}

@@ -1,3 +1,5 @@
+import i18n from "./i18n";
+
 const DAY = 24 * 60 * 60 * 1000;
 
 // Own name tables: Intl output differs between runtimes ("Sep" vs "Sept").
@@ -6,6 +8,10 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 /** "14 Sep 2025" */
 function dayMonthYear(d: Date): string {
+  const currentLng = i18n.language;
+  if (currentLng && currentLng.startsWith("zh")) {
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+  }
   return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`;
 }
 
@@ -21,13 +27,17 @@ export function daysAgo(date: Date, now: Date): number {
 /** Section heading for the message list. */
 export function groupLabel(date: Date, now: Date): string {
   const d = daysAgo(date, now);
-  if (d <= 0) return "Today";
-  if (d === 1) return "Yesterday";
-  if (d < 7) return "This week";
+  if (d <= 0) return i18n.t("dates.today", { defaultValue: "Today" });
+  if (d === 1) return i18n.t("dates.yesterday", { defaultValue: "Yesterday" });
+  if (d < 7) return i18n.t("dates.thisWeek", { defaultValue: "This week" });
+  const currentLng = i18n.language;
   if (date.getFullYear() === now.getFullYear()) {
+    if (currentLng && currentLng.startsWith("zh")) {
+      return `${date.getMonth() + 1}月`;
+    }
     return MONTHS[date.getMonth()];
   }
-  return String(date.getFullYear());
+  return currentLng && currentLng.startsWith("zh") ? `${date.getFullYear()}年` : String(date.getFullYear());
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -51,7 +61,14 @@ export function shortTime(date: Date, now: Date): string {
   const d = daysAgo(date, now);
   const hm = clock(date);
   if (d <= 0) return hm;
-  if (d < 7) return `${WEEKDAYS[date.getDay()]} ${hm}`;
+  const currentLng = i18n.language;
+  if (d < 7) {
+    if (currentLng && currentLng.startsWith("zh")) {
+      const zhWeekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+      return `${zhWeekdays[date.getDay()]} ${hm}`;
+    }
+    return `${WEEKDAYS[date.getDay()]} ${hm}`;
+  }
   return dayMonthYear(date);
 }
 
@@ -59,8 +76,8 @@ export function shortTime(date: Date, now: Date): string {
 export function longTime(date: Date, now: Date): string {
   const d = daysAgo(date, now);
   const hm = clock(date);
-  if (d <= 0) return `Today ${hm}`;
-  if (d === 1) return `Yesterday ${hm}`;
+  if (d <= 0) return `${i18n.t("dates.today", { defaultValue: "Today" })} ${hm}`;
+  if (d === 1) return `${i18n.t("dates.yesterday", { defaultValue: "Yesterday" })} ${hm}`;
   return `${dayMonthYear(date)}, ${hm}`;
 }
 

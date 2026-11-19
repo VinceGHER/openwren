@@ -6,6 +6,7 @@ import type { AppInfo } from "../backend";
 import { RichText } from "../components/RichText";
 import { Button, Chip, IconButton, categories, fieldBox, fieldCaption } from "../components/ui";
 import { TEXT_SIZES, fontChoice } from "../lib/font";
+import i18n from "../lib/i18n";
 import { REPOSITORY, SPONSOR_PAGE, WEBSITE } from "../lib/links";
 import { pictureFromFile, signatureHtml } from "../lib/signature";
 import { useStore } from "../store";
@@ -446,6 +447,23 @@ function Appearance() {
   const systemFont = useStore((s) => s.systemFont.family);
   return (
     <>
+      <Options
+        label="Language"
+        value={settings.language ?? i18n.language ?? "en"}
+        onChange={(v) => {
+          void setSetting("language", v);
+          void i18n.changeLanguage(v);
+          try {
+            localStorage.setItem("openwren_language", v);
+          } catch {
+            // ignore
+          }
+        }}
+        options={[
+          ["en", "English"],
+          ["zh-CN", "简体中文"],
+        ]}
+      />
       <Options
         label="Font"
         value={fontChoice(settings.font)}
