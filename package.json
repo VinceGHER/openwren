@@ -22,8 +22,10 @@
     "@tiptap/pm": "^3.33.1",
     "@tiptap/react": "^3.33.1",
     "@tiptap/starter-kit": "^3.33.1",
+    "i18next": "^24.2.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-i18next": "^15.4.1",
     "tldts": "7.4.22",
     "zustand": "^5.1.0"
   },

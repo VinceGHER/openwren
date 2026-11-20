@@ -1,0 +1,38 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "discard": "舍弃",
+    "search": "搜索邮件 (例如 from:张三 has:attachment)"
+  },
+  "nav": {
+    "allInboxes": "所有收件箱",
+    "inbox": "收件箱",
+    "drafts": "草稿箱",
+    "sent": "已发送",
+    "archive": "归档",
+    "trash": "已删除",
+    "junk": "垃圾邮件",
+    "custom": "自定义"
+  },
+  "dates": {
+    "today": "今天",
+    "yesterday": "昨天",
+    "thisWeek": "本周"
+  },
+  "settings": {
+    "title": "设置",
+    "general": "常规",
+    "language": "界面语言",
+    "languageDesc": "选择应用程序界面语言",
+    "theme": "外观主题",
+    "accounts": "账户管理"
+  },
+  "composer": {
+    "to": "收件人",
+    "subject": "主题",
+    "send": "发送",
+    "sendLater": "定时发送"
+  }
+}

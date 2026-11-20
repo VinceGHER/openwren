@@ -120,6 +120,13 @@ mod tests {
     }
 
     #[test]
+    fn cjk_words_are_formatted_safely() {
+        let p = parse("发票 合同 2024");
+        assert_eq!(p.fts.as_deref(), Some("\"发票\"* \"合同\"* \"2024\"*"));
+        assert_eq!(p.words, ["发票", "合同", "2024"]);
+    }
+
+    #[test]
     fn operators_target_columns_and_filters() {
         let p = parse("from:\"Nordic Print\" subject:invoice has:attachment before:2024-01-01 in:archive is:unread");
         assert_eq!(p.fts.as_deref(), Some("sender:\"Nordic Print\" subject:\"invoice\"*"));
