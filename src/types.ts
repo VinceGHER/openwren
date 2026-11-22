@@ -162,10 +162,12 @@ export interface SavedSignature {
   id: number;
   name: string;
   html: string;
-  /** Text only, or a picture left of or above the text. */
-  layout: "text" | "left" | "above";
+  /** Text only, or a picture left of, above or below the text. */
+  layout: "text" | "left" | "above" | "below";
   /** The picture as a data URL, or empty. */
   image: string;
+  /** True when the HTML was written by hand; the editor then shows its source. */
+  rawHtml: boolean;
 }
 
 export interface SignatureDefaults {

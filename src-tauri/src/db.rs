@@ -625,18 +625,18 @@ pub fn list_outbox(conn: &Connection) -> Result<Vec<OutboxItem>> {
 // ---------- signatures ----------
 
 pub fn list_signatures(conn: &Connection) -> Result<Vec<Signature>> {
-    let mut stmt = conn.prepare("SELECT id, name, html, layout, image FROM signatures ORDER BY name COLLATE NOCASE")?;
-    let rows = stmt.query_map([], |r| Ok(Signature { id: r.get(0)?, name: r.get(1)?, html: r.get(2)?, layout: r.get(3)?, image: r.get(4)? }))?;
+    let mut stmt = conn.prepare("SELECT id, name, html, layout, image, raw_html FROM signatures ORDER BY name COLLATE NOCASE")?;
+    let rows = stmt.query_map([], |r| Ok(Signature { id: r.get(0)?, name: r.get(1)?, html: r.get(2)?, layout: r.get(3)?, image: r.get(4)?, raw_html: r.get(5)? }))?;
     Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
 /// Create (id 0) or update a signature. Returns its id.
 pub fn save_signature(conn: &Connection, s: &Signature, plain: &str) -> Result<i64> {
     if s.id == 0 {
-        conn.execute("INSERT INTO signatures (name, html, plain, layout, image) VALUES (?1, ?2, ?3, ?4, ?5)", params![s.name, s.html, plain, s.layout, s.image])?;
+        conn.execute("INSERT INTO signatures (name, html, plain, layout, image, raw_html) VALUES (?1, ?2, ?3, ?4, ?5, ?6)", params![s.name, s.html, plain, s.layout, s.image, s.raw_html])?;
         Ok(conn.last_insert_rowid())
     } else {
-        conn.execute("UPDATE signatures SET name = ?2, html = ?3, plain = ?4, layout = ?5, image = ?6 WHERE id = ?1", params![s.id, s.name, s.html, plain, s.layout, s.image])?;
+        conn.execute("UPDATE signatures SET name = ?2, html = ?3, plain = ?4, layout = ?5, image = ?6, raw_html = ?7 WHERE id = ?1", params![s.id, s.name, s.html, plain, s.layout, s.image, s.raw_html])?;
         Ok(s.id)
     }
 }

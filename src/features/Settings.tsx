@@ -1,9 +1,9 @@
-import { IconBell, IconCloudDownload, IconFilter, IconHeart, IconInfoCircle, IconPalette, IconShieldLock, IconSignature, IconTrash, IconUserCircle, IconX } from "@tabler/icons-react";
+import { IconBell, IconCloudDownload, IconCode, IconFilter, IconHeart, IconInfoCircle, IconPalette, IconShieldLock, IconSignature, IconTrash, IconUserCircle, IconX } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import logo from "../../src-tauri/icons/128x128.png";
 import { backend, errorText } from "../backend";
 import type { AppInfo } from "../backend";
-import { RichText } from "../components/RichText";
+import { RichText, editorHtml } from "../components/RichText";
 import { Button, Chip, IconButton, categories, fieldBox, fieldCaption } from "../components/ui";
 import { TEXT_SIZES, fontChoice } from "../lib/font";
 import { REPOSITORY, SPONSOR_PAGE, WEBSITE } from "../lib/links";
@@ -200,6 +200,13 @@ function Accounts() {
   );
 }
 
+/** HTML without the differences that saving and the editor add themselves, for comparing. */
+function shape(html: string): string {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  for (const a of doc.querySelectorAll("a")) for (const name of ["rel", "target", "class"]) a.removeAttribute(name);
+  return doc.body.innerHTML;
+}
+
 function Signatures() {
   const signatures = useStore((s) => s.signatures);
   const defaults = useStore((s) => s.signatureDefaults);
@@ -267,11 +274,24 @@ function Signatures() {
     });
   };
 
+  /** Switch between the editor and the signature's HTML source. */
+  const setRawHtml = (rawHtml: boolean) => {
+    const now = latest.current;
+    if (!now) return;
+    if (rawHtml) return change({ rawHtml });
+    // The editor holds simple formatting only; say so before anything else is dropped.
+    const kept = editorHtml(now.html);
+    if (shape(kept) !== shape(now.html) && !window.confirm("The editor keeps only simple formatting: bold, italic, lists and links. Everything else in your HTML, such as tables, colours and pictures, will be removed.")) return;
+    change({ rawHtml, html: kept });
+  };
+  /** The HTML as saved: what will be sent, after scripts and the like were removed. */
+  const storedHtml = signatures.find((s) => s.id === editing?.id)?.html ?? "";
+
   /** A new signature exists from the start, so every later change is simply saved. */
   const add = () => {
     flush();
     void run(async () => {
-      const fresh: SavedSignature = { id: 0, name: "New signature", html: "", layout: "text", image: "" };
+      const fresh: SavedSignature = { id: 0, name: "New signature", html: "", layout: "text", image: "", rawHtml: false };
       const id = await backend.saveSignature(fresh);
       await loadPreferences();
       latest.current = { ...fresh, id };
@@ -308,10 +328,32 @@ function Signatures() {
             Name
           </label>
           <input id="sig-name" className={fieldBox} value={editing.name} placeholder="Work" onChange={(e) => change({ name: e.target.value })} />
-          <div className={`${fieldCaption} mt-3`}>Signature</div>
-          <div className="rounded-[10px] border border-edge p-2">
-            <RichText key={editing.id} label="Signature" className="h-36" initial={editing.html} onChange={(html) => html !== latest.current?.html && change({ html })} />
+          <div className="mt-3 flex items-end justify-between">
+            <div className={fieldCaption}>Signature</div>
+            <Button variant="ghost" className={`mb-1 h-7 ${editing.rawHtml ? "text-brand" : "text-ink2"}`} aria-pressed={editing.rawHtml} onClick={() => setRawHtml(!editing.rawHtml)}>
+              <IconCode size={16} /> {editing.rawHtml ? "Back to the editor" : "Edit as HTML"}
+            </Button>
           </div>
+          {editing.rawHtml ? (
+            <>
+              <textarea
+                key={editing.id}
+                aria-label="Signature HTML"
+                className="selectable block h-44 w-full resize-y rounded-[10px] border border-edge bg-transparent p-2 font-mono text-[12.5px] leading-relaxed outline-none focus:border-brand"
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
+                placeholder={'<table>\n  <tr><td style="color:#555">Kind regards,<br><b>Your name</b></td></tr>\n</table>'}
+                value={editing.html}
+                onChange={(e) => change({ html: e.target.value })}
+              />
+              <p className="mt-1.5 text-xs text-ink3">Use inline styles, as mail programs expect. Scripts, forms and style sheets are removed when the signature is saved.</p>
+            </>
+          ) : (
+            <div className="rounded-[10px] border border-edge p-2">
+              <RichText key={editing.id} label="Signature" className="h-36" initial={editing.html} onChange={(html) => html !== latest.current?.html && change({ html })} />
+            </div>
+          )}
           <div className={`${fieldCaption} mt-3`}>Picture</div>
           <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Signature layout">
             {(
@@ -319,6 +361,7 @@ function Signatures() {
                 ["text", "No picture"],
                 ["left", "Left of the text"],
                 ["above", "Above the text"],
+                ["below", "Below the text"],
               ] as const
             ).map(([layout, name]) => (
               <Chip key={layout} on={editing.layout === layout} onClick={() => change({ layout })}>
@@ -351,11 +394,12 @@ function Signatures() {
               </>
             )}
           </div>
-          {editing.layout !== "text" && (
+          {(editing.layout !== "text" || editing.rawHtml) && (
             <>
               <div className={`${fieldCaption} mt-3`}>Preview</div>
-              {editing.image ? (
-                <div className="rich selectable rounded-[10px] border border-dashed border-edge p-3" dangerouslySetInnerHTML={{ __html: signatureHtml(editing) }} />
+              {editing.image || editing.layout === "text" ? (
+                // Hand-written HTML is shown as saved, so the preview is what people receive.
+                <div className="rich selectable overflow-x-auto rounded-[10px] border border-dashed border-edge p-3" dangerouslySetInnerHTML={{ __html: signatureHtml(editing.rawHtml ? { ...editing, html: storedHtml } : editing) }} />
               ) : (
                 <p className="text-[13px] text-ink2">Choose a picture, such as a logo or a photo. It is made small and sent inside each message, so people see it without having to load images.</p>
               )}

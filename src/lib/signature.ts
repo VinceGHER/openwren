@@ -13,6 +13,7 @@ export const hasPicture = (s: SavedSignature) => s.image !== "" && s.layout !== 
 export function signatureHtml(s: SavedSignature, src: string = s.image): string {
   if (!hasPicture(s)) return s.html;
   const picture = (width: number) => `<img src="${src}" width="${width}" alt="" style="display:block;border:0">`;
+  if (s.layout === "below") return `${s.html}<div style="margin-top:8px">${picture(160)}</div>`;
   if (s.layout === "above") return `<div style="margin-bottom:8px">${picture(160)}</div>${s.html}`;
   return `<table cellpadding="0" cellspacing="0" border="0"><tr><td style="padding-right:14px;vertical-align:top">${picture(96)}</td><td style="vertical-align:top">${s.html}</td></tr></table>`;
 }
