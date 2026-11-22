@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="docs/cover.png" alt="OpenWren: mail that stays yours. A modern, privacy-first, open-source mail app, built with Rust and React.">
+  <img src="docs/cover.png" alt="OpenWren: mail that stays yours. A modern, privacy-first, open-source email client, built with Rust and React.">
 </p>
 
 # OpenWren
 
-A modern, fast, privacy-first mail app that keeps your mail on your computer. Free
-and open source, for [Linux, Windows and macOS](https://openwren.app/download/).
+A modern, fast, privacy-first email client that keeps your mail on your computer.
+Free and open source, for [Linux, Windows and macOS](https://openwren.app/download/).
 It is built with **Rust** (the engine: sync, search, encryption) and **React**
 (the interface), which makes it small and fast: a 14 MB download that starts in
 about half a second.
@@ -34,7 +34,7 @@ it keeps OpenWren free and maintained.
 
 - **Free.** No price, no account with us, no ads.
 - **Open source.** Apache-2.0. Every line is public: read it, build it, fork it.
-- **Built because I could not find a mail app for Linux that I liked.** I wanted
+- **Built because I could not find an email client for Linux that I liked.** I wanted
   something modern, fast and private, so I wrote it.
 - **Private.** Mail is stored encrypted on your computer. Trackers are removed
   and suspicious mail is flagged before you click.
