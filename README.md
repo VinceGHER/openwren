@@ -98,6 +98,8 @@ sudo dnf install openwren
 
 **AppImage:** download [OpenWren-linux-x86_64.AppImage](https://packages.openwren.app/latest/OpenWren-linux-x86_64.AppImage), make it executable and run it. It updates itself from inside the app.
 
+**Arch Linux and Manjaro:** [openwren-bin](https://aur.archlinux.org/packages/openwren-bin) on the AUR, for example `yay -S openwren-bin`. It is maintained by the community, not by this project.
+
 The repositories are signed with the OpenWren key, fingerprint
 `8991 7136 148C 9676 F3A5 1B21 4B8A FB6E 4238 18E0`.
 

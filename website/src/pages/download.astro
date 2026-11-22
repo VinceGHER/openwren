@@ -25,7 +25,7 @@ const updates = RELEASE.selfUpdating
       updates, and OpenWren tells you when a new version is out.
     </p>
     <p class="muted">
-      <a href="#apt">apt</a> · <a href="#dnf">dnf</a> · <a href="#appimage">AppImage</a> ·
+      <a href="#apt">apt</a> · <a href="#dnf">dnf</a> · <a href="#appimage">AppImage</a> · <a href="#aur">AUR</a> ·
       <a href="#uninstall">Uninstall</a> · <a href="#key">Signing key</a>
     </p>
 
@@ -50,6 +50,13 @@ const updates = RELEASE.selfUpdating
       For any other distribution, download the
       <a href={RELEASE.appImage}>AppImage</a>, make the file executable and run it.
     </p>
+
+    <h3 id="aur">Arch Linux and Manjaro (AUR)</h3>
+    <p>
+      Install <a href="https://aur.archlinux.org/packages/openwren-bin">openwren-bin</a> from the AUR with your AUR
+      helper. The package is maintained by the community, not by the OpenWren project.
+    </p>
+    <Command code="yay -S openwren-bin" />
 
     <h3 id="uninstall">Uninstall</h3>
     <p>Remove the package with your package manager:</p>
