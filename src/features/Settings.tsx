@@ -1,4 +1,4 @@
-import { IconBell, IconCloudDownload, IconCode, IconFilter, IconHeart, IconInfoCircle, IconPalette, IconShieldLock, IconSignature, IconTrash, IconUserCircle, IconX } from "@tabler/icons-react";
+import { IconBell, IconCloudDownload, IconCode, IconFilter, IconHeart, IconInfoCircle, IconPalette, IconPower, IconShieldLock, IconSignature, IconTrash, IconUserCircle, IconX } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import logo from "../../src-tauri/icons/128x128.png";
 import { backend, errorText } from "../backend";
@@ -22,6 +22,7 @@ const pages: [SettingsPage, string, typeof IconBell][] = [
   ["privacy", "Privacy", IconShieldLock],
   ["rules", "Rules", IconFilter],
   ["notifications", "Notifications", IconBell],
+  ["startup", "Startup and tray", IconPower],
   ["about", "About", IconInfoCircle],
   ["sponsor", "Sponsor", IconHeart],
 ];
@@ -758,6 +759,16 @@ function Notifications() {
           ["off", "Off"],
         ]}
       />
+      <p className="text-[13px] text-ink2">Notifications appear only while OpenWren is running. Whether it keeps running in the tray is set under Startup and tray.</p>
+    </>
+  );
+}
+
+function Startup() {
+  const settings = useStore((s) => s.settings);
+  const setSetting = useStore((s) => s.setSetting);
+  return (
+    <>
       <Options
         label="When the window is closed"
         value={settings.close_to_tray === "off" ? "off" : "on"}
@@ -776,7 +787,7 @@ function Notifications() {
           ["off", "Do not start OpenWren"],
         ]}
       />
-      <p className="text-[13px] text-ink2">Notifications appear only while OpenWren is running. In the tray it keeps checking for mail; use the tray icon to open it again or to quit.</p>
+      <p className="text-[13px] text-ink2">In the tray OpenWren keeps checking for mail; use the tray icon to open it again or to quit.</p>
     </>
   );
 }
@@ -991,6 +1002,7 @@ const content: Record<SettingsPage, () => React.ReactNode> = {
   privacy: Privacy,
   rules: Rules,
   notifications: Notifications,
+  startup: Startup,
   about: About,
   sponsor: Sponsor,
 };
