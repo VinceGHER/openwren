@@ -296,8 +296,8 @@ pub fn save_body(conn: &mut Connection, id: i64, body: &Body) -> Result<()> {
     tx.execute("DELETE FROM attachments WHERE message_id = ?1", [id])?;
     for a in &body.attachments {
         tx.execute(
-            "INSERT INTO attachments (message_id, name, mime_type, size, content_id) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![id, a.name, a.mime_type, a.size, a.content_id],
+            "INSERT INTO attachments (message_id, name, mime_type, size) VALUES (?1, ?2, ?3, ?4)",
+            params![id, a.name, a.mime_type, a.size],
         )?;
     }
     tx.execute(
@@ -500,7 +500,7 @@ pub fn message_detail(conn: &Connection, id: i64) -> Result<MessageDetail> {
         .query_row("SELECT html, plain FROM bodies WHERE message_id = ?1", [id], |r| Ok((r.get(0)?, r.get(1)?)))
         .optional()?
         .unwrap_or((None, None));
-    let mut stmt = conn.prepare("SELECT name, mime_type, size FROM attachments WHERE message_id = ?1 AND content_id IS NULL ORDER BY id")?;
+    let mut stmt = conn.prepare("SELECT name, mime_type, size FROM attachments WHERE message_id = ?1 ORDER BY id")?;
     let attachments = stmt
         .query_map([id], |r| Ok(Attachment { name: r.get(0)?, mime_type: r.get(1)?, size: r.get(2)? }))?
         .collect::<rusqlite::Result<_>>()?;

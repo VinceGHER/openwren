@@ -243,7 +243,7 @@ mod tests {
         d.inline = vec![FilePart { name: "signature-image".into(), mime_type: "image/png".into(), data: vec![0x89, b'P', b'N', b'G'] }];
         let body = parse::parse_body(&build(&d).unwrap().raw);
         assert!(body.html.unwrap().contains("src=\"data:image/png;base64,iVBORw==\""));
-        assert_eq!(body.attachments.iter().filter(|a| a.content_id.is_none()).count(), 1, "only notes.txt is a real attachment");
+        assert_eq!(body.attachments.iter().map(|a| a.name.as_str()).collect::<Vec<_>>(), ["notes.txt"], "only notes.txt is a real attachment");
     }
 
     #[test]

@@ -1,6 +1,6 @@
 //! Turning raw mail into the fields we store.
 
-use mail_parser::{Address, HeaderValue, MessageParser, MimeHeaders, PartType};
+use mail_parser::{Address, HeaderValue, Message, MessageParser, MessagePart, MimeHeaders, PartType};
 
 #[derive(Debug, Default)]
 pub struct Header {
@@ -244,7 +244,6 @@ pub struct AttachmentMeta {
     pub name: String,
     pub mime_type: String,
     pub size: i64,
-    pub content_id: Option<String>,
 }
 
 #[derive(Debug, Default)]
@@ -306,34 +305,39 @@ fn preview_of(text: &str) -> String {
     out
 }
 
+/// The HTML of the message as the reader sees it, when it has a real HTML part.
+/// mail-parser offers text parts as HTML too; those do not count.
+fn shown_html(msg: &Message) -> Option<String> {
+    let real = msg.html_part(0).is_some_and(|p| matches!(p.body, PartType::Html(_)));
+    if real { msg.body_html(0).map(|h| sanitize_html(&h)) } else { None }
+}
+
+/// For a picture the message text shows: how the text refers to it (`cid:...`) and
+/// its kind ("png"). A Content-ID alone does not make a part such a picture, since
+/// many mail programs give one to every file they attach; the text has to use it.
+fn shown_picture(part: &MessagePart, html: Option<&str>) -> Option<(String, String)> {
+    let cid = part.content_id()?.trim_matches(['<', '>']);
+    let kind = part.content_type()?;
+    let subtype = kind.c_subtype.as_deref()?.to_ascii_lowercase();
+    let reference = format!("cid:{cid}");
+    let picture = kind.c_type.eq_ignore_ascii_case("image") && ["png", "jpeg", "jpg", "gif", "webp"].contains(&subtype.as_str());
+    (picture && !cid.is_empty() && html?.contains(&reference)).then_some((reference, subtype))
+}
+
+/// The files of a message that can be opened, saved and forwarded: every attached
+/// part except the pictures its text shows. The list under a message, the paperclip
+/// and the positions used to open a file all come from here, so they always agree.
+fn files<'a>(msg: &'a Message<'a>, html: Option<&str>) -> Vec<&'a MessagePart<'a>> {
+    msg.attachments().filter(|part| shown_picture(part, html).is_none()).collect()
+}
+
 pub fn parse_body(raw: &[u8]) -> Body {
     let Some(msg) = MessageParser::default().parse(raw) else {
         return Body::default();
     };
-    // mail-parser offers text parts as HTML too; only keep a real HTML part.
-    let has_html = msg.html_part(0).is_some_and(|p| matches!(p.body, PartType::Html(_)));
-    let mut html = if has_html { msg.body_html(0).map(|h| sanitize_html(&h)) } else { None };
-    // Pictures that travel inside the message (logos, signature images) are put
-    // into the HTML itself, so they show without any network request.
-    if let Some(html) = html.as_mut() {
-        use base64::Engine;
-        let mut budget = 1_500_000usize;
-        for part in msg.attachments() {
-            let (Some(cid), Some(kind)) = (part.content_id(), part.content_type()) else { continue };
-            let cid = cid.trim_matches(['<', '>']);
-            let reference = format!("cid:{cid}");
-            let image = kind.c_type.eq_ignore_ascii_case("image") && kind.c_subtype.as_deref().is_some_and(|s| ["png", "jpeg", "jpg", "gif", "webp"].contains(&s.to_ascii_lowercase().as_str()));
-            if !image || cid.is_empty() || part.len() > budget || !html.contains(&reference) {
-                continue;
-            }
-            budget -= part.len();
-            let data = base64::engine::general_purpose::STANDARD.encode(part.contents());
-            *html = html.replace(&reference, &format!("data:image/{};base64,{data}", kind.c_subtype.as_deref().unwrap_or("png").to_ascii_lowercase()));
-        }
-    }
-    let plain = msg.body_text(0).map(|t| t.to_string()).unwrap_or_default();
-    let attachments = msg
-        .attachments()
+    let mut html = shown_html(&msg);
+    let attachments = files(&msg, html.as_deref())
+        .into_iter()
         .map(|part| AttachmentMeta {
             name: part.attachment_name().unwrap_or("attachment").to_string(),
             mime_type: part
@@ -344,24 +348,39 @@ pub fn parse_body(raw: &[u8]) -> Body {
                 })
                 .unwrap_or_else(|| "application/octet-stream".to_string()),
             size: part.len() as i64,
-            content_id: part.content_id().map(str::to_string),
         })
         .collect();
+    // Pictures that travel inside the message (logos, signature images) are put
+    // into the HTML itself, so they show without any network request.
+    if let Some(html) = html.as_mut() {
+        use base64::Engine;
+        let mut budget = 1_500_000usize;
+        for part in msg.attachments() {
+            let Some((reference, kind)) = shown_picture(part, Some(html)) else { continue };
+            if part.len() > budget {
+                continue;
+            }
+            budget -= part.len();
+            let data = base64::engine::general_purpose::STANDARD.encode(part.contents());
+            *html = html.replace(&reference, &format!("data:image/{kind};base64,{data}"));
+        }
+    }
+    let plain = msg.body_text(0).map(|t| t.to_string()).unwrap_or_default();
     Body { preview: preview_of(&plain), html, plain, attachments }
 }
 
-/// The decoded bytes of the `index`-th real attachment (inline images excluded),
-/// in the same order as `MessageDetail::attachments`.
+/// The decoded bytes of the `index`-th file of a message, in the same order as
+/// `MessageDetail::attachments`.
 pub fn attachment_bytes(raw: &[u8], index: usize) -> Option<Vec<u8>> {
     let msg = MessageParser::default().parse(raw)?;
-    let part = msg.attachments().filter(|p| p.content_id().is_none()).nth(index)?;
+    let part = *files(&msg, shown_html(&msg).as_deref()).get(index)?;
     Some(part.contents().to_vec())
 }
 
-/// The `index`-th real attachment as (file name, content type, bytes), for sending it on.
+/// The `index`-th file of a message as (file name, content type, bytes), for sending it on.
 pub fn attachment_part(raw: &[u8], index: usize) -> Option<(String, String, Vec<u8>)> {
     let msg = MessageParser::default().parse(raw)?;
-    let part = msg.attachments().filter(|p| p.content_id().is_none()).nth(index)?;
+    let part = *files(&msg, shown_html(&msg).as_deref()).get(index)?;
     let name = part.attachment_name().unwrap_or("attachment").to_string();
     let mime_type = match part.content_type() {
         Some(kind) => match kind.subtype() {
@@ -376,6 +395,38 @@ pub fn attachment_part(raw: &[u8], index: usize) -> Option<(String, String, Vec<
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A message as Gmail and Apple Mail send it: every attached file has a Content-ID,
+    /// but the text only shows the logo.
+    const WITH_CONTENT_IDS: &[u8] = b"From: a@b.example\r\nSubject: Report\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"x\"\r\n\r\n\
+--x\r\nContent-Type: text/html\r\n\r\n<p>See attached.</p><img src=\"cid:logo@b.example\">\r\n\
+--x\r\nContent-Type: image/png; name=\"logo.png\"\r\nContent-Disposition: inline; filename=\"logo.png\"\r\nContent-ID: <logo@b.example>\r\nContent-Transfer-Encoding: base64\r\n\r\niVBORw==\r\n\
+--x\r\nContent-Type: image/jpeg; name=\"photo.jpg\"\r\nContent-Disposition: attachment; filename=\"photo.jpg\"\r\nContent-ID: <f_photo>\r\nContent-Transfer-Encoding: base64\r\n\r\n/9j/\r\n\
+--x\r\nContent-Type: application/pdf; name=\"report.pdf\"\r\nContent-Disposition: attachment; filename=\"report.pdf\"\r\nContent-ID: <f_report>\r\nContent-Transfer-Encoding: base64\r\n\r\nJVBERi0xLjQ=\r\n\
+--x--\r\n";
+
+    #[test]
+    fn a_file_with_a_content_id_is_still_an_attachment() {
+        let body = parse_body(WITH_CONTENT_IDS);
+        // The logo is shown in the text and is not offered as a file; the photo and the PDF are.
+        assert!(body.html.unwrap().contains("src=\"data:image/png;base64,iVBORw==\""));
+        assert_eq!(body.attachments.iter().map(|a| a.name.as_str()).collect::<Vec<_>>(), ["photo.jpg", "report.pdf"]);
+        // Opening, saving and forwarding count the files the same way the list does.
+        assert_eq!(attachment_bytes(WITH_CONTENT_IDS, 0).unwrap(), [0xff, 0xd8, 0xff]);
+        assert_eq!(attachment_bytes(WITH_CONTENT_IDS, 1).unwrap(), b"%PDF-1.4");
+        assert_eq!(attachment_part(WITH_CONTENT_IDS, 1).unwrap().0, "report.pdf");
+        assert!(attachment_bytes(WITH_CONTENT_IDS, 2).is_none());
+    }
+
+    #[test]
+    fn a_message_with_only_a_shown_picture_has_no_attachment() {
+        let raw = b"From: a@b.example\r\nSubject: Hi\r\nMIME-Version: 1.0\r\nContent-Type: multipart/related; boundary=\"x\"\r\n\r\n\
+--x\r\nContent-Type: text/html\r\n\r\n<p>Hi</p><img src=\"cid:logo\">\r\n\
+--x\r\nContent-Type: image/png\r\nContent-ID: <logo>\r\nContent-Transfer-Encoding: base64\r\n\r\niVBORw==\r\n\
+--x--\r\n";
+        assert!(parse_body(raw).attachments.is_empty());
+        assert!(attachment_bytes(raw, 0).is_none());
+    }
 
     #[test]
     fn an_attachment_can_be_taken_out_to_forward_it() {
