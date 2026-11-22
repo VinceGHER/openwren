@@ -397,11 +397,12 @@ function Signatures() {
           {(editing.layout !== "text" || editing.rawHtml) && (
             <>
               <div className={`${fieldCaption} mt-3`}>Preview</div>
-              {editing.image || editing.layout === "text" ? (
-                // Hand-written HTML is shown as saved, so the preview is what people receive.
+              {/* Hand-written HTML is shown as saved, so the preview is what people receive. */}
+              {(editing.image || editing.rawHtml) && (
                 <div className="rich selectable overflow-x-auto rounded-[10px] border border-dashed border-edge p-3" dangerouslySetInnerHTML={{ __html: signatureHtml(editing.rawHtml ? { ...editing, html: storedHtml } : editing) }} />
-              ) : (
-                <p className="text-[13px] text-ink2">Choose a picture, such as a logo or a photo. It is made small and sent inside each message, so people see it without having to load images.</p>
+              )}
+              {editing.layout !== "text" && !editing.image && (
+                <p className={`text-[13px] text-ink2 ${editing.rawHtml ? "mt-2" : ""}`}>Choose a picture, such as a logo or a photo. It is made small and sent inside each message, so people see it without having to load images.</p>
               )}
             </>
           )}
