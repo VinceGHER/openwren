@@ -221,7 +221,7 @@ Passwords and OAuth tokens are stored only in the system keyring, keyed by accou
 - Desktop notifications, tray icon with unread count, start minimised
 - Keyboard shortcuts that follow Outlook's, so habits carry over
 - Import and export `.eml` and `.mbox`
-- Settings pages: Accounts, Signatures, Sync and storage, Layout, Appearance, Rules, Notifications, Shortcuts
+- Settings pages: Accounts, Signatures, Sync and storage, Layout, Appearance, Rules, Notifications, Startup and tray, Shortcuts
 
 ### Out of scope for v1
 Calendar, contacts and to-do modules; Exchange / Microsoft 365 native protocols; PGP and S/MIME; Windows and macOS builds; mobile; AI drafting.
@@ -380,7 +380,7 @@ Last updated 12 November 2026. "Tested" means covered by automated tests against
 - **Favourites:** add or remove a folder with the star that appears on hover, or by right-click.
 - **Sync button** in the header, **tray icon** with Open, Sync now and Quit, and an **About** page in Settings.
 
-- **Tray:** closing the window keeps OpenWren running in the tray (can be turned off in Settings, Notifications). Starting it again shows the running window.
+- **Tray:** closing the window keeps OpenWren running in the tray (can be turned off in Settings, Startup and tray). Starting it again shows the running window.
 - **Privacy:** tracking pixels and tracking link parameters are removed; warnings for failed sender checks (SPF, DKIM, DMARC), company names on foreign addresses and links that show one site but lead to another; unsubscribe from mailings (RFC 8058 one-click, mail or web page).
 - **Company logos:** 199 logos from Simple Icons, bundled and matched by the sender's domain. Amazon, Microsoft, LinkedIn, Slack and Adobe are not in that set. Fetching site icons online was decided against.
 - **Signatures:** optional picture, left of or above the text, sent inside the message.
