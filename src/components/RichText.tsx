@@ -1,5 +1,5 @@
 import { IconBold, IconItalic, IconLink, IconList, IconListNumbers, IconUnderline } from "@tabler/icons-react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { Editor, EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import type { ReactNode } from "react";
 
@@ -31,10 +31,20 @@ function Tool({ label, active, onClick, children }: { label: string; active: boo
   );
 }
 
+const extensions = [StarterKit.configure({ link: { openOnClick: false } })];
+
+/** HTML as the editor would keep it: what it cannot hold (tables, colours, pictures) is gone. */
+export function editorHtml(html: string): string {
+  const editor = new Editor({ element: null, extensions, content: html });
+  const kept = editor.isEmpty ? "" : editor.getHTML();
+  editor.destroy();
+  return kept;
+}
+
 /** Rich-text editor for the composer and the signature editor. */
 export function RichText({ initial, onChange, label, autoFocus, className = "", toolbarEnd }: Props) {
   const editor = useEditor({
-    extensions: [StarterKit.configure({ link: { openOnClick: false } })],
+    extensions,
     content: initial,
     autofocus: autoFocus ? "start" : false,
     editorProps: { attributes: { "aria-label": label, class: "selectable outline-none min-h-full" } },

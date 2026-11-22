@@ -1025,7 +1025,7 @@ fn save_signature(state: State<'_, AppState>, signature: Signature) -> Result<i6
     if signature.name.trim().is_empty() {
         return Err(Error("Give the signature a name.".into()));
     }
-    let layout = if ["left", "above"].contains(&signature.layout.as_str()) && !signature.image.is_empty() { signature.layout.clone() } else { "text".into() };
+    let layout = if ["left", "above", "below"].contains(&signature.layout.as_str()) && !signature.image.is_empty() { signature.layout.clone() } else { "text".into() };
     if !signature.image.is_empty() {
         decode_image(&signature.image)?;
         if signature.image.len() > 400_000 {

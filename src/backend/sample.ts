@@ -253,9 +253,9 @@ function moveTo(id: number, target: number): number[] {
 }
 
 let signatures: SavedSignature[] = [
-  { id: 1, name: "Work", html: "<p>Kind regards,<br><strong>Katy Reid</strong><br>Operations lead · Contoso<br>+31 20 555 0142 · contoso.example</p>", layout: "text", image: "" },
-  { id: 2, name: "Personal", html: "<p>Cheers,<br>Katy</p>", layout: "text", image: "" },
-  { id: 3, name: "Short reply", html: "<p>Katy</p>", layout: "text", image: "" },
+  { id: 1, name: "Work", html: "<p>Kind regards,<br><strong>Katy Reid</strong><br>Operations lead · Contoso<br>+31 20 555 0142 · contoso.example</p>", layout: "text", image: "", rawHtml: false },
+  { id: 2, name: "Personal", html: "<p>Cheers,<br>Katy</p>", layout: "text", image: "", rawHtml: false },
+  { id: 3, name: "Short reply", html: "<p>Katy</p>", layout: "text", image: "", rawHtml: false },
 ];
 let defaults: SignatureDefaults[] = [
   { accountId: 1, newId: 2, replyId: 3 },

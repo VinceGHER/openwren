@@ -467,6 +467,16 @@ List-Unsubscribe-Post: List-Unsubscribe=One-Click\r\nSubject: Deals\r\n\r\nHi";
     }
 
     #[test]
+    fn sanitizing_keeps_a_hand_written_signature() {
+        let clean = sanitize_html(
+            r#"<table cellpadding="0"><tr><td style="color:#555;padding-right:12px"><b>Katy</b></td><td><img src="https://contoso.example/logo.png" width="96"></td></tr></table><style>td{color:red}</style><script>x()</script>"#,
+        );
+        assert!(clean.contains(r#"<td style="color:#555;padding-right:12px">"#), "{clean}");
+        assert!(clean.contains(r#"<img src="https://contoso.example/logo.png" width="96">"#), "{clean}");
+        assert!(!clean.contains("color:red") && !clean.contains("x()"), "{clean}");
+    }
+
+    #[test]
     fn sanitizing_removes_scripts_and_handlers() {
         let clean = sanitize_html(
             "<p onclick=\"evil()\">Hi <b>there</b></p><script>alert(1)</script>\

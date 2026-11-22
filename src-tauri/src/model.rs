@@ -136,12 +136,15 @@ pub struct Signature {
     pub id: i64,
     pub name: String,
     pub html: String,
-    /// "text", "left" (image left of the text) or "above".
+    /// "text", "left" (image left of the text), "above" or "below".
     #[serde(default)]
     pub layout: String,
     /// The signature's picture as a data URL, or empty.
     #[serde(default)]
     pub image: String,
+    /// True when the user wrote the HTML by hand, so the editor shows its source.
+    #[serde(default)]
+    pub raw_html: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
