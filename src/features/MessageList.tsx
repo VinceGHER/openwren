@@ -34,6 +34,11 @@ function Row({ m, now, query, onMenu }: { m: MessageSummary; now: Date; query: s
   const open = useStore((s) => s.messageId === m.id);
   const ticked = useStore((s) => s.selected.includes(m.id));
   const { selectMessage, prefetch } = useStore.getState();
+  // Stepping with the arrow keys can open a message that is scrolled out of sight; bring it back into view.
+  const row = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (open) row.current?.scrollIntoView({ block: "nearest" });
+  }, [open]);
   // What can be told without opening the message: failed sender checks, or a name the address does not match.
   const warn = useStore((s) => s.settings.phishing_warnings !== "off");
   const server = useStore((s) => s.accounts.find((a) => a.id === m.accountId)?.authServer);
@@ -41,6 +46,7 @@ function Row({ m, now, query, onMenu }: { m: MessageSummary; now: Date; query: s
   const date = new Date(m.date * 1000);
   return (
     <div
+      ref={row}
       role="option"
       aria-selected={ticked}
       tabIndex={0}
