@@ -165,7 +165,13 @@ mod tests {
              INSERT INTO attachments (message_id, name, content_id) VALUES (1, 'report.pdf', '<f_report>'), (1, 'data.csv', NULL), (2, 'notes.txt', NULL);",
         )
         .unwrap();
+        // Two forwards saved as drafts: one of the message whose files are counted anew, one of the other.
+        let forward = |id: i64| format!(r#"{{"subject":"Fw","html":"<p>See below.</p>","forwarded":{{"messageId":{id},"items":[{{"index":0,"name":"file","size":1}}]}}}}"#);
+        conn.execute("INSERT INTO drafts (id, account_id, content, updated_at) VALUES (1, 1, ?1, 0), (2, 1, ?2, 0)", [forward(1), forward(2)]).unwrap();
         migrate(&mut conn).unwrap();
+        let draft = |id: i64| conn.query_row("SELECT content FROM drafts WHERE id = ?1", [id], |r| r.get::<_, String>(0)).unwrap();
+        assert_eq!(draft(1), r#"{"subject":"Fw","html":"<p>See below.</p>"}"#, "its files are dropped so that no other file is sent in their place");
+        assert_eq!(draft(2), forward(2));
         let bodies: Vec<i64> = conn.prepare("SELECT message_id FROM bodies").unwrap().query_map([], |r| r.get(0)).unwrap().map(|r| r.unwrap()).collect();
         assert_eq!(bodies, [2], "the message with a hidden file has no body, so it is fetched again");
         let files: Vec<String> = conn.prepare("SELECT name FROM attachments").unwrap().query_map([], |r| r.get(0)).unwrap().map(|r| r.unwrap()).collect();
