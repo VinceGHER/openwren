@@ -147,7 +147,7 @@ pub async fn check(settings: &ServerSettings, secret: &Secret) -> Result<()> {
     match transport(settings, secret)?.test_connection().await {
         Ok(true) => Ok(()),
         Ok(false) => Err(Error(format!("The outgoing server {} did not respond.", settings.host))),
-        Err(e) => Err(Error(format!("The outgoing server did not accept the sign-in: {e}"))),
+        Err(e) => Err(settings.explain_certificate_error(format!("The outgoing server did not accept the sign-in: {e}"))),
     }
 }
 
@@ -158,7 +158,7 @@ pub async fn send(settings: &ServerSettings, secret: &Secret, mail_from: &str, r
     transport
         .send_raw(&envelope, raw)
         .await
-        .map_err(|e| Error(format!("The outgoing server did not accept the message: {e}")))?;
+        .map_err(|e| settings.explain_certificate_error(format!("The outgoing server did not accept the message: {e}")))?;
     Ok(())
 }
 

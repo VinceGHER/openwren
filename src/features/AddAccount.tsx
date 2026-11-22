@@ -2,10 +2,11 @@ import { IconX } from "@tabler/icons-react";
 import { useState } from "react";
 import { backend, errorText } from "../backend";
 import { Button, Chip, IconButton, fieldBox, fieldCaption } from "../components/ui";
+import { isOnThisComputer, isProtonAddress, protonBridge } from "../lib/servers";
 import { useStore } from "../store";
 import type { Security, ServerSettings } from "../types";
 
-type Kind = "imap" | "google";
+type Kind = "imap" | "google" | "proton";
 
 const ports: Record<"imap" | "smtp", Record<Security, number>> = {
   imap: { tls: 993, starttls: 143, none: 143 },
@@ -24,6 +25,17 @@ interface Server {
   security: Security;
   /** True once the user has typed a host, so we stop guessing it. */
   edited: boolean;
+}
+
+/** Proton Mail Bridge's servers, marked as typed so the address does not replace them. */
+const bridgeServer = (protocol: "imap" | "smtp"): Server => ({ ...protonBridge[protocol], port: String(protonBridge[protocol].port), edited: true });
+
+/** The servers guessed from the address, as for a new IMAP account. */
+const guessedServer = (protocol: "imap" | "smtp", address: string): Server => ({ host: guessHost(address, protocol), port: String(ports[protocol].tls), security: "tls", edited: false });
+
+interface Servers {
+  incoming: Server;
+  outgoing: Server;
 }
 
 function ServerRow({ id, title, optional, protocol, value, onChange }: { id: string; title: string; optional?: boolean; protocol: "imap" | "smtp"; value: Server; onChange: (s: Server) => void }) {
@@ -66,7 +78,7 @@ const validPort = (s: Server) => Number.isInteger(Number(s.port)) && Number(s.po
  * What was typed, kept while OpenWren runs so that closing the dialog after a
  * failed attempt does not lose it. Kept in memory only, and forgotten once the account is added.
  */
-let remembered: { kind: Kind; address: string; name: string; password: string; incoming: Server; outgoing: Server } | null = null;
+let remembered: { kind: Kind; address: string; name: string; password: string; mail: Servers; bridge: Servers } | null = null;
 
 let preferred: Kind | null = null;
 
@@ -88,9 +100,14 @@ export function AddAccount() {
   const [address, setAddress] = useState(remembered?.address ?? "");
   const [name, setName] = useState(remembered?.name ?? "");
   const [password, setPassword] = useState(remembered?.password ?? "");
-  const [incoming, setIncoming] = useState<Server>(remembered?.incoming ?? { host: "", port: "993", security: "tls", edited: false });
-  const [outgoing, setOutgoing] = useState<Server>(remembered?.outgoing ?? { host: "", port: "465", security: "tls", edited: false });
-  remembered = { kind, address, name, password, incoming, outgoing };
+  // The IMAP and Proton Mail tabs each keep their own servers, so visiting one never changes the other.
+  const [mail, setMail] = useState<Servers>(() => remembered?.mail ?? { incoming: guessedServer("imap", ""), outgoing: guessedServer("smtp", "") });
+  const [bridge, setBridge] = useState<Servers>(() => remembered?.bridge ?? { incoming: bridgeServer("imap"), outgoing: bridgeServer("smtp") });
+  const { incoming, outgoing } = kind === "proton" ? bridge : mail;
+  const setServers = kind === "proton" ? setBridge : setMail;
+  const setIncoming = (incoming: Server) => setServers((s) => ({ ...s, incoming }));
+  const setOutgoing = (outgoing: Server) => setServers((s) => ({ ...s, outgoing }));
+  remembered = { kind, address, name, password, mail, bridge };
   // Gmail has two ways in. An app password works for everyone; Google sign-in needs the user's own client ID.
   const [googleWay, setGoogleWay] = useState<"password" | "oauth">("password");
   const [busy, setBusy] = useState(false);
@@ -106,8 +123,9 @@ export function AddAccount() {
 
   function changeAddress(value: string) {
     setAddress(value);
-    if (!incoming.edited) setIncoming((s) => ({ ...s, host: guessHost(value, "imap") }));
-    if (!outgoing.edited) setOutgoing((s) => ({ ...s, host: guessHost(value, "smtp") }));
+    // Only the IMAP tab's servers follow the address; Bridge's are on this computer whatever the address is.
+    const follow = (s: Server, protocol: "imap" | "smtp") => (s.edited ? s : { ...s, host: guessHost(value, protocol) });
+    setMail((s) => ({ incoming: follow(s.incoming, "imap"), outgoing: follow(s.outgoing, "smtp") }));
   }
 
   async function submit(e: React.FormEvent) {
@@ -155,7 +173,10 @@ export function AddAccount() {
     }
   }
 
-  const insecure = kind !== "google" && (incoming.security === "none" || (outgoing.host.trim() !== "" && outgoing.security === "none"));
+  const unencrypted = kind === "google" ? [] : [incoming, ...(outgoing.host.trim() ? [outgoing] : [])].filter((s) => s.security === "none");
+  // Unencrypted is refused for anything but this computer; there, nothing crosses a network.
+  const insecure = unencrypted.some((s) => !isOnThisComputer(s.host));
+  const local = unencrypted.length > 0 && !insecure;
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <form
@@ -179,6 +200,9 @@ export function AddAccount() {
           <Chip on={kind === "google"} onClick={() => changeKind("google")}>
             Google
           </Chip>
+          <Chip on={kind === "proton"} onClick={() => changeKind("proton")}>
+            Proton Mail
+          </Chip>
           <Chip on={kind === "imap"} onClick={() => changeKind("imap")}>
             IMAP
           </Chip>
@@ -200,7 +224,7 @@ export function AddAccount() {
           {kind !== "google" && (
             <div>
               <label className={fieldCaption} htmlFor="aa-password">
-                Password
+                {kind === "proton" ? "Bridge password" : "Password"}
               </label>
               <input id="aa-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={fieldBox} autoComplete="off" />
             </div>
@@ -249,11 +273,35 @@ export function AddAccount() {
             </button>
           </p>
         )}
+        {kind === "imap" && isProtonAddress(address) && (
+          <p className="mt-2 text-xs text-ink2">
+            Proton Mail is reached through Proton Mail Bridge.{" "}
+            <button type="button" className="text-brand underline" onClick={() => changeKind("proton")}>
+              Set it up with Bridge
+            </button>
+          </p>
+        )}
+        {kind === "proton" && (
+          <div className="mt-3 rounded-[10px] bg-canvas px-3.5 py-3 text-[13px] text-ink2">
+            <div className="mb-1.5 text-ink">Proton Mail needs Proton Mail Bridge</div>
+            <ol className="list-decimal space-y-1 pl-5">
+              <li>
+                Install Bridge, start it and sign in to your Proton account.{" "}
+                <button type="button" className="text-brand underline" onClick={() => void backend.openLink("https://proton.me/mail/bridge")}>
+                  Get Proton Mail Bridge
+                </button>
+              </li>
+              <li>Copy the password Bridge shows for this address. Your Proton password does not work here.</li>
+              <li>The servers below are Bridge's defaults. If you changed the ports in Bridge, change them here too.</li>
+            </ol>
+          </div>
+        )}
         {kind !== "google" && (
           <>
             <ServerRow id="aa-in" title="Incoming server (IMAP)" protocol="imap" value={incoming} onChange={setIncoming} />
             <ServerRow id="aa-out" title="Outgoing server (SMTP)" optional protocol="smtp" value={outgoing} onChange={setOutgoing} />
-            {insecure && <p className="mt-2 text-xs text-danger">Without encryption your password and mail travel unprotected. Use this only for a test server on your own computer.</p>}
+            {insecure && <p className="mt-2 text-xs text-danger">Without encryption your password and mail travel unprotected. OpenWren allows this only for a server on your own computer.</p>}
+            {local && <p className="mt-2 text-xs text-ink3">Not encrypted, but the connection stays on this computer.</p>}
             <p className="mt-3 text-xs text-ink3">
               The password is stored in your system's password store, not in OpenWren's files.
             </p>

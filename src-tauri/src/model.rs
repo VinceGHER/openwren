@@ -40,6 +40,18 @@ impl ServerSettings {
         }
         Ok(())
     }
+
+    /// An error message, with a way out when a server on this computer sends a
+    /// certificate OpenWren does not accept. Mail bridges such as Proton Mail Bridge make
+    /// their own certificate, and their connection never leaves this computer.
+    pub fn explain_certificate_error(&self, message: String) -> crate::error::Error {
+        if self.is_on_this_computer() && message.to_ascii_lowercase().contains("certificate") {
+            return crate::error::Error(format!(
+                "{message}. A mail bridge on this computer, such as Proton Mail Bridge, uses its own certificate. Choose \"None (not secure)\" for it: the connection stays on this computer."
+            ));
+        }
+        crate::error::Error(message)
+    }
 }
 
 pub type ImapSettings = ServerSettings;

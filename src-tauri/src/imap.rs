@@ -43,7 +43,7 @@ async fn open(settings: &ImapSettings, secret: &Secret) -> Result<Session> {
     let tcp = TcpStream::connect((settings.host.as_str(), settings.port)).await?;
     let client = match settings.security {
         Security::Tls => {
-            let mut client = async_imap::Client::new(tls(&settings.host, tcp).await?);
+            let mut client = async_imap::Client::new(tls(&settings.host, tcp).await.map_err(|e| settings.explain_certificate_error(e.0))?);
             client.read_response().await?.ok_or(Error("The server closed the connection.".into()))?;
             client
         }
@@ -51,7 +51,7 @@ async fn open(settings: &ImapSettings, secret: &Secret) -> Result<Session> {
             let mut plain = async_imap::Client::new(tcp);
             plain.read_response().await?.ok_or(Error("The server closed the connection.".into()))?;
             plain.run_command_and_check_ok("STARTTLS", None).await?;
-            async_imap::Client::new(tls(&settings.host, plain.into_inner()).await?)
+            async_imap::Client::new(tls(&settings.host, plain.into_inner()).await.map_err(|e| settings.explain_certificate_error(e.0))?)
         }
         Security::None => {
             let mut client = async_imap::Client::new(Box::new(tcp) as Box<dyn IoStream>);

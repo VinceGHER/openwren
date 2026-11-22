@@ -1534,6 +1534,15 @@ mod tests {
     }
 
     #[test]
+    fn local_certificate_errors_point_to_none() {
+        let on = |host: &str| ServerSettings { host: host.into(), port: 1143, security: Security::Starttls, username: "a".into() };
+        let bad = || "invalid peer certificate: UnknownIssuer".to_string();
+        assert!(on("127.0.0.1").explain_certificate_error(bad()).0.contains("None (not secure)"));
+        assert!(!on("imap.example.com").explain_certificate_error(bad()).0.contains("None (not secure)"));
+        assert_eq!(on("127.0.0.1").explain_certificate_error("connection refused".into()).0, "connection refused");
+    }
+
+    #[test]
     fn opened_attachments_are_private_from_the_start() {
         let base = std::env::temp_dir().join(format!("openwren-test-{}", std::process::id()));
         let dir = base.join("opened-attachments").join("1-0");
