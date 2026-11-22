@@ -21,6 +21,7 @@ const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0008_stricter_sender_checks.sql"),
     include_str!("../migrations/0009_picked_files_time.sql"),
     include_str!("../migrations/0010_signature_html.sql"),
+    include_str!("../migrations/0011_attachments_with_content_id.sql"),
 ];
 
 const PLAIN_HEADER: &[u8; 16] = b"SQLite format 3\0";
@@ -147,6 +148,28 @@ mod tests {
             )
             .unwrap();
         assert_eq!(id, 1);
+    }
+
+    #[test]
+    fn mail_with_hidden_files_is_downloaded_again() {
+        // What version 0.1.12 left: a PDF hidden because it has a Content-ID, next to a message without one.
+        let mut conn = Connection::open_in_memory().unwrap();
+        for sql in &MIGRATIONS[..10] {
+            conn.execute_batch(sql).unwrap();
+        }
+        conn.pragma_update(None, "user_version", 10).unwrap();
+        conn.execute_batch(
+            "INSERT INTO accounts (id, address, kind) VALUES (1, 'katy@work.com', 'imap');
+             INSERT INTO messages (id, account_id, subject, date) VALUES (1, 1, 'Report', 1), (2, 1, 'Notes', 2);
+             INSERT INTO bodies (message_id, html, plain) VALUES (1, NULL, 'See attached.'), (2, NULL, 'Notes.');
+             INSERT INTO attachments (message_id, name, content_id) VALUES (1, 'report.pdf', '<f_report>'), (1, 'data.csv', NULL), (2, 'notes.txt', NULL);",
+        )
+        .unwrap();
+        migrate(&mut conn).unwrap();
+        let bodies: Vec<i64> = conn.prepare("SELECT message_id FROM bodies").unwrap().query_map([], |r| r.get(0)).unwrap().map(|r| r.unwrap()).collect();
+        assert_eq!(bodies, [2], "the message with a hidden file has no body, so it is fetched again");
+        let files: Vec<String> = conn.prepare("SELECT name FROM attachments").unwrap().query_map([], |r| r.get(0)).unwrap().map(|r| r.unwrap()).collect();
+        assert_eq!(files, ["notes.txt"]);
     }
 
     const KEY: &str = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
