@@ -146,10 +146,10 @@ describe("GET /api/daily", () => {
         { day: "2026-11-12", daily: 0, weekly: 0, monthly: 0, new: 0 },
         { day: "2026-11-13", daily: 6, weekly: 1, monthly: 1, new: 0 },
       ],
-      // Only the one first request of the month is in the breakdowns, folded as a small group.
-      byVersion: [{ name: "other", count: 1 }],
-      byPackage: [{ name: "other", count: 1 }],
-      bySystem: [{ name: "other", count: 1 }],
+      // Only today's six daily users are in the breakdowns; the single one is folded as a small group.
+      byVersion: [{ name: "0.1.0", count: 5 }, { name: "other", count: 1 }],
+      byPackage: [{ name: "deb", count: 5 }, { name: "other", count: 1 }],
+      bySystem: [{ name: "ubuntu-24.04", count: 5 }, { name: "other", count: 1 }],
     });
   });
 

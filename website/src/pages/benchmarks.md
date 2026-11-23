@@ -5,7 +5,7 @@ fullTitle: "OpenWren benchmarks: email search speed on 200,000 messages"
 description: Measured speed of the OpenWren email client. Search, start-up, memory and sync on encrypted mailboxes of 50,000 and 200,000 messages, with the method.
 ---
 
-# Benchmarks
+# OpenWren benchmarks: search speed on 200,000 messages
 
 How fast OpenWren is, measured, with the method and the commands to repeat it. Nothing here is estimated.
 

@@ -91,7 +91,7 @@
     {"day":"2026-11-12","daily":175,"weekly":33,"monthly":11,"new":4},
     {"day":"2026-11-13","daily":171,"weekly":35,"monthly":9,"new":7}
   ],
-  "byVersion": [{"name":"0.1.0","count":2140},{"name":"0.1.1","count":5320},{"name":"0.2.0","count":1010}],
-  "byPackage": [{"name":"deb","count":4870},{"name":"rpm","count":1990},{"name":"appimage","count":1610}],
-  "bySystem": [{"name":"ubuntu-24.04","count":2890},{"name":"fedora-43","count":1720},{"name":"debian-13","count":1180},{"name":"ubuntu-26.04","count":960},{"name":"linuxmint-22","count":740},{"name":"arch","count":560},{"name":"opensuse-tumbleweed","count":420}]
+  "byVersion": [{"name":"0.2.0","count":118},{"name":"0.1.1","count":41},{"name":"0.1.0","count":12}],
+  "byPackage": [{"name":"deb","count":98},{"name":"rpm","count":40},{"name":"appimage","count":33}],
+  "bySystem": [{"name":"ubuntu-24.04","count":58},{"name":"fedora-43","count":34},{"name":"debian-13","count":24},{"name":"ubuntu-26.04","count":19},{"name":"linuxmint-22","count":15},{"name":"arch","count":11},{"name":"opensuse-tumbleweed","count":7},{"name":"other","count":3}]
 }

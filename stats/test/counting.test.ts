@@ -114,20 +114,22 @@ describe("aggregate", () => {
       { day: "2026-11-12", daily: 4, weekly: 4, monthly: 2, new: 0 },
       { day: "2026-11-13", daily: 6, weekly: 0, monthly: 0, new: 0 },
     ]);
-    // Only first requests of the month count in the breakdowns: 7 + 2.
-    expect(report.byVersion).toEqual([{ name: "0.1.0", count: 9 }]);
-    expect(report.byPackage).toEqual([{ name: "deb", count: 9 }]);
-    expect(report.bySystem).toEqual([{ name: "ubuntu-24.04", count: 9 }]);
+    // Only today's daily users count in the breakdowns.
+    expect(report.byVersion).toEqual([{ name: "0.2.0", count: 6 }]);
+    expect(report.byPackage).toEqual([{ name: "rpm", count: 6 }]);
+    expect(report.bySystem).toEqual([{ name: "fedora-41", count: 6 }]);
   });
 
-  it("counts each installation once in the breakdowns, however many days it was used", () => {
-    // Ten copies of 0.1.0 used every day, five of 0.2.0 seen once; all first seen this month.
-    const rows = [row("2026-11-01", 10, { m: 1 }), row("2026-11-01", 5, { m: 1, v: "0.2.0" })];
-    for (let day = 2; day <= 13; day++) rows.push(row(`2026-11-${String(day).padStart(2, "0")}`, 10));
-    rows.push(row("2026-10-20", 40, { m: 1, v: "0.0.9" })); // last month: not in this month's breakdown
+  it("counts only today's daily users in the breakdowns, each installation once", () => {
+    const rows = [
+      row("2026-11-13", 10),
+      row("2026-11-13", 5, { v: "0.2.0" }),
+      row("2026-11-13", 8, { d: 0, m: 1, v: "0.3.0" }), // not a first-of-day request: not counted
+      row("2026-11-12", 40, { m: 1, v: "0.0.9" }), // yesterday: not in today's breakdown
+    ];
     const report = aggregate(rows, "2026-11-13", 30);
     expect(report.byVersion).toEqual([{ name: "0.1.0", count: 10 }, { name: "0.2.0", count: 5 }]);
-    expect(report.days.filter((d) => d.day.startsWith("2026-11")).reduce((s, d) => s + d.monthly, 0)).toBe(15);
+    expect(report.byVersion.reduce((s, v) => s + v.count, 0)).toBe(report.days[report.days.length - 1].daily);
   });
 
   it("gives only zero days and empty breakdowns when there is nothing", () => {
@@ -141,15 +143,16 @@ describe("aggregate", () => {
     });
   });
 
-  it("folds groups smaller than 5 into one other entry, over the month", () => {
+  it("folds groups smaller than 5 into one other entry, over today", () => {
     const report = aggregate(
       [
-        row("2026-11-12", 20, { m: 1 }),
-        row("2026-11-12", 3, { m: 1, os: "fedora-41" }),
-        row("2026-11-13", 2, { m: 1, os: "fedora-41" }), // 3 + 2 = 5 this month: kept
-        row("2026-11-13", 4, { m: 1, os: "arch" }),
-        row("2026-11-13", 1, { m: 1, os: "kali" }),
-        row("2026-11-13", 2, { m: 1, os: "other" }),
+        row("2026-11-12", 3, { os: "arch" }), // yesterday: does not lift arch to 5
+        row("2026-11-13", 20),
+        row("2026-11-13", 3, { os: "fedora-41" }),
+        row("2026-11-13", 2, { os: "fedora-41", pkg: "rpm" }), // 3 + 2 = 5 today: kept
+        row("2026-11-13", 4, { os: "arch" }),
+        row("2026-11-13", 1, { os: "kali" }),
+        row("2026-11-13", 2, { os: "other" }),
       ],
       "2026-11-13",
       2,

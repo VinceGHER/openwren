@@ -5,7 +5,7 @@ fullTitle: "OpenWren docs: Gmail app password, IMAP, search operators"
 description: How to use the OpenWren email client. Adding a Gmail or IMAP account, Proton Mail Bridge, keyboard shortcuts and search operators.
 ---
 
-# Docs
+# OpenWren docs: accounts, shortcuts and search operators
 
 Adding an account, keyboard shortcuts and search.
 
