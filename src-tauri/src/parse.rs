@@ -476,6 +476,22 @@ mod tests {
     }
 
     #[test]
+    fn decodes_gbk_headers_and_body() {
+        let raw = b"From: =?gbk?B?1tDOxNb3zOI=?= <system@example.com>\r\n\
+              Subject: =?gbk?B?1tDOxNb3zOI=?=\r\n\
+              MIME-Version: 1.0\r\n\
+              Content-Type: text/plain; charset=gbk\r\n\
+              Content-Transfer-Encoding: base64\r\n\r\n\
+              xOO6w6OsysC95w==\r\n";
+        let header = parse_header(raw);
+        let body = parse_body(raw);
+        assert_eq!(header.from_name, "中文主题");
+        assert_eq!(header.subject, "中文主题");
+        assert_eq!(body.plain, "你好，世界");
+        assert_eq!(body.preview, "你好，世界");
+    }
+
+    #[test]
     fn reads_sender_checks_and_unsubscribe_options() {
         let raw = b"Authentication-Results: mx.example.com;\r\n dkim=fail header.i=@x.y; dkim=pass header.i=@shop.example;\r\n spf=softfail smtp.mailfrom=a@b.c; dmarc=FAIL (p=none) header.from=shop.example\r\n\
 Authentication-Results: forged.example; dmarc=pass\r\n\

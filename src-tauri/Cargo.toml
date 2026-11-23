@@ -24,7 +24,7 @@ tokio-rustls = { version = "0.26", default-features = false, features = ["ring",
 rustls-pki-types = "1.16.0"
 webpki-roots = "1.0.12"
 futures = "0.3.34"
-mail-parser = "0.11.9"
+mail-parser = { version = "0.11.9", features = ["full_encoding"] }
 ammonia = "4.0.3"
 # Passwords live in the system store: the secret service on Linux, the Keychain on macOS,
 # the Credential Manager on Windows.
