@@ -561,6 +561,15 @@ function Appearance() {
         ]}
       />
       <Options
+        label="Attachments"
+        value={settings.attachments === "above" ? "above" : "below"}
+        onChange={(v) => void setSetting("attachments", v)}
+        options={[
+          ["below", "Below the text"],
+          ["above", "Above the text"],
+        ]}
+      />
+      <Options
         label="Undo send"
         value={settings.undo_seconds ?? "10"}
         onChange={(v) => void setSetting("undo_seconds", v)}

@@ -103,6 +103,7 @@ export function Composer({ className }: { className: string }) {
   const [showCopies, setShowCopies] = useState(draft.cc !== "" || draft.bcc !== "");
   const [subject, setSubject] = useState(draft.subject);
   const [files, setFiles] = useState(draft.attachments);
+  const attachmentsAbove = useStore((s) => s.settings.attachments === "above");
   // Attachments of the message being forwarded; they travel along unless removed here.
   const [forwarded, setForwarded] = useState(draft.forwarded?.items ?? []);
   const [error, setError] = useState("");
@@ -205,6 +206,48 @@ export function Composer({ className }: { className: string }) {
     }
   }
 
+  // Above the text when chosen in Settings, as in the reading pane.
+  const attachments = (files.length > 0 || forwarded.length > 0) && (
+    <div className={`flex flex-none flex-wrap gap-2 ${attachmentsAbove ? "mt-2.5" : "mt-3"}`}>
+      {forwarded.map((item) => (
+        <span key={`fw-${item.index}`} className="inline-flex items-center gap-1.5 rounded-[10px] border border-edge py-1 pr-1 pl-2.5 text-ink2" title="From the forwarded message">
+          <IconPaperclip size={15} />
+          {item.name}
+          <span className="text-xs text-ink3">{fileSize(item.size)}</span>
+          <IconButton
+            label={`Remove ${item.name}`}
+            className="size-6"
+            onClick={() => {
+              setForwarded((all) => all.filter((x) => x.index !== item.index));
+              touch();
+            }}
+          >
+            <IconX size={14} />
+          </IconButton>
+        </span>
+      ))}
+      {files.map((path) => (
+        <span key={path} className="inline-flex items-center gap-1.5 rounded-[10px] border border-edge py-1 pr-1 pl-2.5 text-ink2" title={path}>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 hover:text-ink hover:underline"
+            title={`Open ${path}`}
+            onClick={() => void backend.openPickedFile(path).catch((e) => setError(errorText(e)))}
+          >
+            <IconPaperclip size={15} />
+            {path.split(/[\\/]/).pop()}
+          </button>
+          <IconButton label="Remove attachment" className="size-6" onClick={() => {
+              setFiles((f) => f.filter((p) => p !== path));
+              touch();
+            }}>
+            <IconX size={14} />
+          </IconButton>
+        </span>
+      ))}
+    </div>
+  );
+
   return (
     <section
       className={`${className} flex flex-col px-5 py-4`}
@@ -284,6 +327,8 @@ export function Composer({ className }: { className: string }) {
         <input value={subject} onChange={(e) => edited(setSubject)(e.target.value)} className={input} />
       </label>
 
+      {attachmentsAbove && attachments}
+
       {error && (
         <p className="selectable mt-2 rounded-[10px] bg-canvas px-3 py-2 text-[13px] text-danger" role="alert">
           {error}
@@ -328,46 +373,7 @@ export function Composer({ className }: { className: string }) {
 
       {signature && <div className="rich selectable mt-2 flex-none border-t border-dashed border-edge pt-2.5 text-ink2" dangerouslySetInnerHTML={{ __html: signatureHtml(signature) }} />}
       {draft.quote && <p className="mt-2 flex-none text-xs text-ink3">The original message is included below your text.</p>}
-      {(files.length > 0 || forwarded.length > 0) && (
-        <div className="mt-3 flex flex-none flex-wrap gap-2">
-          {forwarded.map((item) => (
-            <span key={`fw-${item.index}`} className="inline-flex items-center gap-1.5 rounded-[10px] border border-edge py-1 pr-1 pl-2.5 text-ink2" title="From the forwarded message">
-              <IconPaperclip size={15} />
-              {item.name}
-              <span className="text-xs text-ink3">{fileSize(item.size)}</span>
-              <IconButton
-                label={`Remove ${item.name}`}
-                className="size-6"
-                onClick={() => {
-                  setForwarded((all) => all.filter((x) => x.index !== item.index));
-                  touch();
-                }}
-              >
-                <IconX size={14} />
-              </IconButton>
-            </span>
-          ))}
-          {files.map((path) => (
-            <span key={path} className="inline-flex items-center gap-1.5 rounded-[10px] border border-edge py-1 pr-1 pl-2.5 text-ink2" title={path}>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1.5 hover:text-ink hover:underline"
-                title={`Open ${path}`}
-                onClick={() => void backend.openPickedFile(path).catch((e) => setError(errorText(e)))}
-              >
-                <IconPaperclip size={15} />
-                {path.split(/[\\/]/).pop()}
-              </button>
-              <IconButton label="Remove attachment" className="size-6" onClick={() => {
-                  setFiles((f) => f.filter((p) => p !== path));
-                  touch();
-                }}>
-                <IconX size={14} />
-              </IconButton>
-            </span>
-          ))}
-        </div>
-      )}
+      {!attachmentsAbove && attachments}
     </section>
   );
 }

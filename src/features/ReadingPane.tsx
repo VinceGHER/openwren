@@ -277,6 +277,7 @@ export function ReadingPane() {
   const isDraft = useStore((s) => s.folders.find((f) => f.id === s.detail?.folderId)?.role === "drafts");
   const editDraft = useStore((s) => s.editDraft);
   const threadHidden = useStore((s) => s.settings.thread_collapsed === "yes");
+  const attachmentsAbove = useStore((s) => s.settings.attachments === "above");
   const setSetting = useStore((s) => s.setSetting);
   const cleaned = useMemo(() => (m?.html ? cleanMail(m.html, blockTrackers) : null), [m?.id, m?.html, blockTrackers]);
   const { setFlags, moveMessages, deleteMessages, selectMessage, reply, setDialog, showToast, targets } = useStore.getState();
@@ -371,6 +372,29 @@ export function ReadingPane() {
       .saveAttachment(m.id, index, name)
       .then((saved) => saved && showToast(`${name} saved`))
       .catch((e) => showToast(errorText(e)));
+
+  // Above the text when chosen in Settings, so a long message does not hide them; always below the warnings.
+  const attachments = m.attachments.length > 0 && (
+    <div className={`flex flex-wrap gap-2 ${attachmentsAbove ? "mb-4" : "mt-4"}`}>
+      {m.attachments.map((a, i) => (
+        // Clicking the name opens the file; the arrow offers to save it.
+        <div key={`${a.name}-${i}`} className="inline-flex items-center rounded-[10px] border border-edge text-ink2">
+          <button type="button" title={`Open ${a.name}`} onClick={() => openFile(i, a.name)} className="inline-flex items-center gap-2 rounded-l-[10px] py-2 pr-2 pl-3 hover:bg-hover">
+            <IconFileText size={18} />
+            {a.name} · {fileSize(a.size)}
+          </button>
+          <Menu
+            label={`More for ${a.name}`}
+            button={<IconChevronDown size={16} />}
+            items={[
+              { label: "Open", icon: <IconExternalLink size={16} />, onSelect: () => openFile(i, a.name) },
+              { label: "Save as…", icon: <IconDeviceFloppy size={16} />, onSelect: () => saveFile(i, a.name) },
+            ]}
+          />
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <section className={`${shell} flex flex-col px-7 pt-3 pb-5`} aria-label="Reading pane">
@@ -475,6 +499,8 @@ export function ReadingPane() {
       {warnings.length > 0 && <Warning key={`warning-${m.id}`} id={m.id} reasons={warnings} />}
       {m.unsubscribe && !isDraft && <Unsubscribe key={`unsubscribe-${m.id}`} sender={m.fromName} kind={m.unsubscribe} to={m.unsubscribeTo ?? "the sender"} />}
 
+      {attachmentsAbove && attachments}
+
       {m.html ? (
         <HtmlBody key={`body-${m.id}`} sender={m.fromAddress} confirmed={senderConfirmed(m.auth, authServer)} html={cleaned?.html ?? m.html} note={trackerNote(cleaned?.pixels ?? 0, cleaned?.links ?? 0)} />
       ) : (
@@ -483,27 +509,7 @@ export function ReadingPane() {
         </div>
       )}
 
-      {m.attachments.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {m.attachments.map((a, i) => (
-            // Clicking the name opens the file; the arrow offers to save it.
-            <div key={`${a.name}-${i}`} className="inline-flex items-center rounded-[10px] border border-edge text-ink2">
-              <button type="button" title={`Open ${a.name}`} onClick={() => openFile(i, a.name)} className="inline-flex items-center gap-2 rounded-l-[10px] py-2 pr-2 pl-3 hover:bg-hover">
-                <IconFileText size={18} />
-                {a.name} · {fileSize(a.size)}
-              </button>
-              <Menu
-                label={`More for ${a.name}`}
-                button={<IconChevronDown size={16} />}
-                items={[
-                  { label: "Open", icon: <IconExternalLink size={16} />, onSelect: () => openFile(i, a.name) },
-                  { label: "Save as…", icon: <IconDeviceFloppy size={16} />, onSelect: () => saveFile(i, a.name) },
-                ]}
-              />
-            </div>
-          ))}
-        </div>
-      )}
+      {!attachmentsAbove && attachments}
 
       {!isDraft && <QuickReply key={`reply-${m.id}`} to={m.fromName || m.fromAddress} />}
     </section>
