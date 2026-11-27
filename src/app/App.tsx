@@ -65,6 +65,8 @@ function onShortcut(e: KeyboardEvent) {
   if (s.dialog || s.welcome || s.whatsNew) return;
   const key = e.key.toLowerCase();
   if (mod(e) && key === "n") return e.preventDefault(), s.compose();
+  // F9 as in Outlook, F5 as in most other apps. Neither types anything, so they also work while writing.
+  if ((e.key === "F9" || e.key === "F5") && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) return e.preventDefault(), s.syncNow();
   if (typing(e.target) || s.draft) return;
   const open = s.detail;
   const ids = s.targets();

@@ -302,6 +302,7 @@ The static mockup in [design/mockup.html](design/mockup.html) is the reference f
 | Move to folder | Ctrl+Shift+V |
 | Next / previous message | Down / Up |
 | Undo | Ctrl+Z |
+| Check for new mail | F9 (or F5) |
 
 ## 7. Milestones
 

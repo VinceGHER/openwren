@@ -246,7 +246,7 @@ function RefreshButton() {
   const syncNow = useStore((s) => s.syncNow);
   const busy = useStore((s) => Object.values(s.progress).some((p) => p.phase !== "idle" && p.phase !== "error"));
   return (
-    <button type="button" aria-label="Check for new mail" title="Check for new mail" onClick={syncNow} className="ml-auto rounded-lg p-1.5 text-ink3 hover:bg-hover hover:text-ink">
+    <button type="button" aria-label="Check for new mail" title="Check for new mail (F9)" onClick={syncNow} className="ml-auto rounded-lg p-1.5 text-ink3 hover:bg-hover hover:text-ink">
       <IconRefresh size={18} stroke={1.6} className={busy ? "animate-spin" : ""} />
     </button>
   );
