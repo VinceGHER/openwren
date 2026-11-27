@@ -1,4 +1,4 @@
-import { IconBell, IconCloudDownload, IconCode, IconFilter, IconHeart, IconInfoCircle, IconPalette, IconPower, IconShieldLock, IconSignature, IconTrash, IconUserCircle, IconX } from "@tabler/icons-react";
+import { IconBell, IconCloudDownload, IconCode, IconFilter, IconHeart, IconInfoCircle, IconMail, IconPalette, IconPower, IconShieldLock, IconSignature, IconTrash, IconUserCircle, IconX } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import logo from "../../src-tauri/icons/128x128.png";
 import { backend, errorText } from "../backend";
@@ -17,6 +17,7 @@ import { imageSenders } from "./HtmlBody";
 const pages: [SettingsPage, string, typeof IconBell][] = [
   ["accounts", "Accounts", IconUserCircle],
   ["signatures", "Signatures", IconSignature],
+  ["mail", "Mail", IconMail],
   ["sync", "Sync and storage", IconCloudDownload],
   ["appearance", "Appearance", IconPalette],
   ["privacy", "Privacy", IconShieldLock],
@@ -505,6 +506,36 @@ function Sync() {
   );
 }
 
+/** How mail is handled, as opposed to how it looks (Appearance). */
+function Mail() {
+  const settings = useStore((s) => s.settings);
+  const setSetting = useStore((s) => s.setSetting);
+  return (
+    <>
+      <Options
+        label="Undo send"
+        value={settings.undo_seconds ?? "10"}
+        onChange={(v) => void setSetting("undo_seconds", v)}
+        options={[
+          ["0", "Off"],
+          ["5", "5 seconds"],
+          ["10", "10 seconds"],
+          ["30", "30 seconds"],
+        ]}
+      />
+      <Options
+        label="Focused inbox"
+        value={settings.focused_inbox === "off" ? "off" : "on"}
+        onChange={(v) => void setSetting("focused_inbox", v)}
+        options={[
+          ["on", "Split into Focused and Other"],
+          ["off", "One list"],
+        ]}
+      />
+    </>
+  );
+}
+
 function Appearance() {
   const settings = useStore((s) => s.settings);
   const setSetting = useStore((s) => s.setSetting);
@@ -542,15 +573,6 @@ function Appearance() {
         ]}
       />
       <Options
-        label="Focused inbox"
-        value={settings.focused_inbox === "off" ? "off" : "on"}
-        onChange={(v) => void setSetting("focused_inbox", v)}
-        options={[
-          ["on", "Split into Focused and Other"],
-          ["off", "One list"],
-        ]}
-      />
-      <Options
         label="Message list density"
         value={settings.density ?? "cozy"}
         onChange={(v) => void setSetting("density", v)}
@@ -558,17 +580,6 @@ function Appearance() {
           ["roomy", "Roomy"],
           ["cozy", "Cozy"],
           ["compact", "Compact"],
-        ]}
-      />
-      <Options
-        label="Undo send"
-        value={settings.undo_seconds ?? "10"}
-        onChange={(v) => void setSetting("undo_seconds", v)}
-        options={[
-          ["0", "Off"],
-          ["5", "5 seconds"],
-          ["10", "10 seconds"],
-          ["30", "30 seconds"],
         ]}
       />
     </>
@@ -1016,6 +1027,7 @@ function Sponsor() {
 const content: Record<SettingsPage, () => React.ReactNode> = {
   accounts: Accounts,
   signatures: Signatures,
+  mail: Mail,
   sync: Sync,
   appearance: Appearance,
   privacy: Privacy,

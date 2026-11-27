@@ -221,7 +221,7 @@ Passwords and OAuth tokens are stored only in the system keyring, keyed by accou
 - Desktop notifications, tray icon with unread count, start minimised
 - Keyboard shortcuts that follow Outlook's, so habits carry over
 - Import and export `.eml` and `.mbox`
-- Settings pages: Accounts, Signatures, Sync and storage, Layout, Appearance, Rules, Notifications, Startup and tray, Shortcuts
+- Settings pages: Accounts, Signatures, Mail, Sync and storage, Layout, Appearance, Rules, Notifications, Startup and tray, Shortcuts
 
 ### Out of scope for v1
 Calendar, contacts and to-do modules; Exchange / Microsoft 365 native protocols; PGP and S/MIME; Windows and macOS builds; mobile; AI drafting.

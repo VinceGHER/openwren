@@ -25,7 +25,7 @@ import type {
 export type Tab = "focused" | "other";
 /** Narrows a folder's list to unread or flagged mail. */
 export type Only = "all" | "unread" | "flagged" | "other";
-export type SettingsPage = "accounts" | "signatures" | "sync" | "appearance" | "privacy" | "rules" | "notifications" | "startup" | "about" | "sponsor";
+export type SettingsPage = "accounts" | "signatures" | "mail" | "sync" | "appearance" | "privacy" | "rules" | "notifications" | "startup" | "about" | "sponsor";
 
 export interface Toast {
   id: number;
