@@ -61,7 +61,10 @@ export function RichText({ initial, onChange, label, autoFocus, className = "", 
 
   return (
     <div className={`flex min-h-0 flex-col ${className}`}>
-      <div className="mb-2 flex flex-none flex-wrap items-center gap-1 rounded-[10px] bg-canvas px-2 py-1" role="toolbar" aria-label="Formatting">
+      {/* The text comes first in the page so Tab from the field above goes straight into it,
+          as in other mail apps; the toolbar is drawn above it and is the next Tab stop after it. */}
+      <EditorContent editor={editor} className="rich min-h-0 flex-1 overflow-y-auto leading-relaxed" />
+      <div className="order-first mb-2 flex flex-none flex-wrap items-center gap-1 rounded-[10px] bg-canvas px-2 py-1" role="toolbar" aria-label="Formatting">
         <Tool label="Bold" active={editor.isActive("bold")} onClick={() => chain().toggleBold().run()}>
           <IconBold size={17} />
         </Tool>
@@ -82,7 +85,6 @@ export function RichText({ initial, onChange, label, autoFocus, className = "", 
         </Tool>
         {toolbarEnd && <div className="ml-auto flex items-center gap-2">{toolbarEnd}</div>}
       </div>
-      <EditorContent editor={editor} className="rich min-h-0 flex-1 overflow-y-auto leading-relaxed" />
     </div>
   );
 }
