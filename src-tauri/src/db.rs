@@ -684,12 +684,16 @@ pub fn remember_contact(conn: &Connection, name: &str, address: &str, weight: i6
     Ok(())
 }
 
+/// Contacts matching what was typed. Those whose address, name or a word of the name starts
+/// with it come first ("an" finds Anna before Hannah); within each group, the most used first.
 pub fn suggest_contacts(conn: &Connection, typed: &str, limit: u32) -> Result<Vec<Contact>> {
-    let like = format!("%{}%", typed.trim().replace(['%', '_'], ""));
+    let typed = typed.trim().replace(['%', '_'], "");
     let mut stmt = conn.prepare(
-        "SELECT name, address FROM contacts WHERE address LIKE ?1 OR name LIKE ?1 ORDER BY use_count DESC, last_used DESC LIMIT ?2",
+        "SELECT name, address FROM contacts WHERE address LIKE '%' || ?1 || '%' OR name LIKE '%' || ?1 || '%'
+         ORDER BY (address LIKE ?1 || '%' OR name LIKE ?1 || '%' OR name LIKE '% ' || ?1 || '%') DESC, use_count DESC, last_used DESC
+         LIMIT ?2",
     )?;
-    let rows = stmt.query_map(params![like, limit], |r| Ok(Contact { name: r.get(0)?, address: r.get(1)? }))?;
+    let rows = stmt.query_map(params![typed, limit], |r| Ok(Contact { name: r.get(0)?, address: r.get(1)? }))?;
     Ok(rows.collect::<rusqlite::Result<_>>()?)
 }
 
@@ -997,6 +1001,22 @@ mod tests {
         }
     }
 
+
+    #[test]
+    fn contacts_starting_with_the_typed_text_come_first() {
+        let conn = crate::store::open_in_memory().unwrap();
+        // Hannah is written to most, but only contains "an".
+        remember_contact(&conn, "Hannah Weber", "hannah@uni.example", 50, 100).unwrap();
+        remember_contact(&conn, "Anna Schmidt", "a.schmidt@uni.example", 2, 100).unwrap();
+        remember_contact(&conn, "", "anton@work.example", 1, 100).unwrap();
+        remember_contact(&conn, "Jan Andersen", "jan@work.example", 1, 50).unwrap();
+        remember_contact(&conn, "Bob", "bob@work.example", 99, 100).unwrap();
+        let found: Vec<String> = suggest_contacts(&conn, "an", 8).unwrap().into_iter().map(|c| c.address).collect();
+        // Name start, address start, a later word of the name; then the rest by use; Bob does not match.
+        assert_eq!(found, ["a.schmidt@uni.example", "anton@work.example", "jan@work.example", "hannah@uni.example"]);
+        // Case does not matter.
+        assert_eq!(suggest_contacts(&conn, "ANTON", 8).unwrap()[0].address, "anton@work.example");
+    }
     #[test]
     fn a_handful_of_forged_checks_does_not_choose_the_trusted_server() {
         let conn = crate::store::open_in_memory().unwrap();

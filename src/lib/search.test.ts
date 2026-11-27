@@ -3,7 +3,7 @@ import type { MessageDetail, SearchFilters } from "../types";
 import { fileSize, highlight, searchMessages } from "./search";
 import { daysAgo, groupLabel, shortTime, useTwelveHourClock } from "./dates";
 import { guessHost } from "../features/AddAccount";
-import { completeWith, lastToken } from "../features/Composer";
+import { completeAt, completeWith, lastToken, looksComplete, tokenAt } from "../features/Composer";
 import { snoozeTimes } from "../features/actions";
 
 const now = new Date(2026, 10, 12, 12, 0);
@@ -115,6 +115,24 @@ describe("composer recipients", () => {
   it("completes it with the chosen contact, keeping earlier ones", () => {
     expect(completeWith("Ann <a@x.org>, bo", { name: "Bob, Jr", address: "bob@y.org" })).toBe("Ann <a@x.org>, Bob  Jr <bob@y.org>, ");
     expect(completeWith("bo", { name: "", address: "bob@y.org" })).toBe("bob@y.org, ");
+  });
+
+  it("finds the recipient around the cursor, not only the last one", () => {
+    const value = "an, Bob <b@y.org>";
+    expect(tokenAt(value, 2).text).toBe("an");
+    expect(tokenAt(value, value.length).text).toBe("Bob <b@y.org>");
+    expect(tokenAt("a@x.org; ce", 11)).toEqual({ start: 8, end: 11, text: "ce" });
+  });
+
+  it("completes the recipient around the cursor and keeps the ones after it", () => {
+    const anna = { name: "Anna", address: "anna@x.org" };
+    expect(completeAt("an, Bob <b@y.org>", 2, anna)).toEqual({ value: "Anna <anna@x.org>, Bob <b@y.org>", caret: 17 });
+    expect(completeAt("a@x.org; an", 11, anna)).toEqual({ value: "a@x.org; Anna <anna@x.org>, ", caret: 28 });
+  });
+
+  it("tells a whole address from one still being typed", () => {
+    for (const done of ["anna@uni.de", "a.b-c@cs.uni-berlin.de", "x@y.museum"]) expect(looksComplete(done), done).toBe(true);
+    for (const partial of ["an", "anna@", "anna@uni", "anna@uni.", "anna@uni.d", "Anna Schmidt", "Anna <anna@uni.de>"]) expect(looksComplete(partial), partial).toBe(false);
   });
 });
 

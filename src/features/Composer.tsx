@@ -1,5 +1,5 @@
 import { IconClock, IconPaperclip, IconSend, IconSignature, IconTrash, IconX } from "@tabler/icons-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { backend, errorText } from "../backend";
 import { RichText } from "../components/RichText";
 import { Button, IconButton, Menu } from "../components/ui";
@@ -13,36 +13,111 @@ const field = "flex items-center gap-3 border-b border-edge py-2";
 const label = "w-16 flex-none text-ink2";
 const input = "min-w-0 flex-1 bg-transparent outline-none placeholder:text-ink3";
 
+/** Where the recipient around the cursor starts and ends in the field, and its text. */
+export function tokenAt(value: string, caret: number): { start: number; end: number; text: string } {
+  let start = Math.min(caret, value.length);
+  let end = start;
+  while (start > 0 && !/[,;]/.test(value[start - 1])) start--;
+  while (end < value.length && !/[,;]/.test(value[end])) end++;
+  return { start, end, text: value.slice(start, end).trim() };
+}
+
 /** Text after the last comma or semicolon: the recipient being typed. */
 export function lastToken(value: string): string {
-  return value.split(/[,;]/).pop()!.trim();
+  return tokenAt(value, value.length).text;
+}
+
+/** Replace the recipient around the cursor with a chosen contact; also returns where the cursor goes. */
+export function completeAt(value: string, caret: number, contact: Contact): { value: string; caret: number } {
+  const { start, end } = tokenAt(value, caret);
+  const before = value.slice(0, start);
+  const after = value.slice(end).replace(/^[,;]\s*/, "");
+  const entry = contact.name ? `${contact.name.replace(/[,;<>"]/g, " ").trim()} <${contact.address}>` : contact.address;
+  const head = `${before}${before && !before.endsWith(" ") ? " " : ""}${entry}`;
+  // At the end, ready for the next address; in the middle, just after the one completed.
+  return after ? { value: `${head}, ${after}`, caret: head.length } : { value: `${head}, `, caret: head.length + 2 };
 }
 
 /** Replace the recipient being typed with a chosen contact. */
 export function completeWith(value: string, contact: Contact): string {
-  const done = value.slice(0, value.length - value.split(/[,;]/).pop()!.length);
-  const entry = contact.name ? `${contact.name.replace(/[,;<>"]/g, " ").trim()} <${contact.address}>` : contact.address;
-  return `${done}${done && !done.endsWith(" ") ? " " : ""}${entry}, `;
+  return completeAt(value, value.length, contact).value;
+}
+
+/** A whole address has been typed (name@domain.tld), so Tab should move on rather than complete it. */
+export function looksComplete(text: string): boolean {
+  return /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>.]{2,}$/.test(text);
 }
 
 function Recipients({ name, value, onChange, autoFocus }: { name: string; value: string; onChange: (v: string) => void; autoFocus?: boolean }) {
-  const [suggestions, setSuggestions] = useState<Contact[]>([]);
+  // The suggestions and the text they were found for: while a newer search is on its way they
+  // may still be shown, but the keyboard must not put an old match in place of what was typed.
+  const [found, setFound] = useState<{ for: string; contacts: Contact[] }>({ for: "", contacts: [] });
+  const suggestions = found.contacts;
   const [focused, setFocused] = useState(false);
-  const token = lastToken(value);
+  const [caret, setCaret] = useState(value.length);
+  // The highlighted suggestion (-1: none), whether it was chosen with the arrow keys, and whether Escape hid the list.
+  const [active, setActive] = useState(-1);
+  const [moved, setMoved] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listId = useId();
+  const token = tokenAt(value, caret).text;
   useEffect(() => {
-    if (token.length < 2 || token.includes(">")) return setSuggestions([]);
+    setHidden(false);
+    setMoved(false);
+    if (token.length < 2 || token.includes(">")) return setFound({ for: token, contacts: [] });
     let current = true;
-    void backend.suggestContacts(token).then((found) => current && setSuggestions(found));
+    void backend.suggestContacts(token).then((contacts) => {
+      if (!current) return;
+      setFound({ for: token, contacts });
+      // A finished address gets no highlight, so Tab moves on; the list stays to pick from.
+      setActive(contacts.length > 0 && !looksComplete(token) ? 0 : -1);
+    });
     return () => {
       current = false;
     };
   }, [token]);
+  const open = focused && !hidden && suggestions.length > 0;
+  const fresh = found.for === token;
+
+  function choose(contact: Contact) {
+    const done = completeAt(value, caret, contact);
+    onChange(done.value);
+    setCaret(done.caret);
+    setFound({ for: "", contacts: [] });
+    requestAnimationFrame(() => inputRef.current?.setSelectionRange(done.caret, done.caret));
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!open || e.nativeEvent.isComposing) return;
+    const n = suggestions.length;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      setMoved(true);
+      setActive((i) => (e.key === "ArrowDown" ? (i + 1) % n : i <= 0 ? n - 1 : i - 1));
+    } else if ((e.key === "Enter" || (e.key === "Tab" && !e.shiftKey)) && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      // Only suggestions found for the text now in the field; otherwise Tab and Enter work as usual.
+      if (!fresh || active < 0 || active >= n || (!moved && looksComplete(token))) return;
+      e.preventDefault();
+      choose(suggestions[active]);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setHidden(true);
+    }
+  }
+
   return (
     <label className={`${field} relative`}>
       <span className={label}>{name}</span>
       <input
+        ref={inputRef}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          setCaret(e.target.selectionStart ?? e.target.value.length);
+          onChange(e.target.value);
+        }}
+        onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? value.length)}
+        onKeyDown={onKeyDown}
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
         placeholder={name === "To" ? "name@company.com" : undefined}
@@ -50,22 +125,29 @@ function Recipients({ name, value, onChange, autoFocus }: { name: string; value:
         autoFocus={autoFocus}
         autoComplete="off"
         spellCheck={false}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-activedescendant={open && fresh && active >= 0 ? `${listId}-${active}` : undefined}
       />
-      {focused && suggestions.length > 0 && (
-        <div className="absolute top-full left-16 z-20 mt-1 min-w-72 rounded-[10px] border border-edge bg-card py-1 shadow-lg" role="listbox" aria-label={`${name} suggestions`}>
-          {suggestions.map((c) => (
+      {open && (
+        <div id={listId} className="absolute top-full left-16 z-20 mt-1 min-w-72 rounded-[10px] border border-edge bg-card py-1 shadow-lg" role="listbox" aria-label={`${name} suggestions`}>
+          {suggestions.map((c, i) => (
             <button
               key={c.address}
+              id={`${listId}-${i}`}
               type="button"
               role="option"
-              aria-selected={false}
+              aria-selected={fresh && i === active}
+              // Not a Tab stop: Tab from the field goes to the next field, not into this list.
+              tabIndex={-1}
               // onMouseDown: act before the input loses focus and the list closes.
               onMouseDown={(e) => {
                 e.preventDefault();
-                onChange(completeWith(value, c));
-                setSuggestions([]);
+                choose(c);
               }}
-              className="flex w-full items-baseline gap-2 px-3 py-1.5 text-left hover:bg-hover"
+              className={`flex w-full items-baseline gap-2 px-3 py-1.5 text-left ${fresh && i === active ? "bg-hover" : "hover:bg-hover"}`}
             >
               <span>{c.name || c.address}</span>
               {c.name && <span className="text-xs text-ink2">{c.address}</span>}
