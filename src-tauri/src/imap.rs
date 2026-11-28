@@ -22,7 +22,7 @@ pub type Session = async_imap::Session<Box<dyn IoStream>>;
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(20);
 
-pub(crate) async fn tls(host: &str, tcp: TcpStream) -> Result<Box<dyn IoStream>> {
+pub(crate) async fn tls(host: &str, tcp: impl IoStream + 'static) -> Result<Box<dyn IoStream>> {
     let roots = RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
     let config = ClientConfig::builder().with_root_certificates(roots).with_no_client_auth();
     let name = rustls_pki_types::ServerName::try_from(host.to_string())?;
@@ -40,7 +40,8 @@ impl async_imap::Authenticator for XOAuth2 {
 
 async fn open(settings: &ImapSettings, secret: &Secret) -> Result<Session> {
     settings.check_security()?;
-    let tcp = TcpStream::connect((settings.host.as_str(), settings.port)).await?;
+    // Fails instead of hanging when the connection dies quietly (see network.rs).
+    let tcp = crate::network::Watched::new(TcpStream::connect((settings.host.as_str(), settings.port)).await?);
     let client = match settings.security {
         Security::Tls => {
             let mut client = async_imap::Client::new(tls(&settings.host, tcp).await.map_err(|e| settings.explain_certificate_error(e.0))?);

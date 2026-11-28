@@ -43,10 +43,18 @@ tauri-plugin-single-instance = "2.4.5"
 tauri-plugin-updater = "2"
 
 # Start at login. Linux writes its own autostart entry (src/autostart.rs).
+# Told about sleep and network changes (network.rs). Already part of the Linux build through GTK.
+[target.'cfg(target_os = "linux")'.dependencies]
+gio = "0.18"
+
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 tauri-plugin-autostart = "2"
 
 [dev-dependencies]
+# Paused clocks for the tests of connection time limits.
+tokio = { version = "1.53.3", features = ["test-util"] }
+# A certificate for the test TLS server.
+rcgen = { version = "0.13", default-features = false, features = ["ring", "pem"] }
 # For the test that checks published updates against the update key.
 minisign-verify = "0.2"
 

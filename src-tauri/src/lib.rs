@@ -6,6 +6,7 @@ pub mod drafts;
 pub mod error;
 pub mod imap;
 pub mod model;
+pub mod network;
 pub mod oauth;
 pub mod parse;
 pub mod rules;
@@ -99,6 +100,8 @@ const HEADER_INFO_PER_ROUND: u32 = 4000;
 const RETRY_AFTER: Duration = Duration::from_secs(30);
 const IDLE_FOR: Duration = Duration::from_secs(20 * 60);
 const POLL_EVERY: Duration = Duration::from_secs(120);
+/// How long after a network change failing to connect is expected, and not shown.
+const NETWORK_SETTLING: Duration = Duration::from_secs(30);
 
 pub struct AppState {
     db: Db,
@@ -298,7 +301,8 @@ async fn wait_for_news(mut session: Session, wake: &Notify) -> Result<Session> {
     handle.init().await?;
     {
         let (wait, stop) = handle.wait_with_timeout(IDLE_FOR);
-        tokio::select! { result = wait => { result?; }, _ = wake.notified() => {} }
+        // Silence is normal in IDLE; a network change still ends the wait (network.rs).
+        tokio::select! { result = network::idling(wait) => { result?; }, _ = wake.notified() => {} }
         drop(stop);
     }
     Ok(handle.done().await?)
@@ -339,10 +343,18 @@ fn spawn_account(app: AppHandle, account_id: i64) {
             if !db::account_exists(&db::lock(&app.state::<AppState>().db), account_id).unwrap_or(false) {
                 return; // the account was removed
             }
+            let opened = network::generation();
             if let Err(e) = sync_loop(&app, account_id, &wake).await {
-                let _ = app.emit("sync-progress", Progress { account_id, phase: "error".into(), done: 0, total: 0, message: e.0 });
+                // The network changed under this connection: connect again at once.
+                if network::generation() != opened {
+                    continue;
+                }
+                // Right after a change the network may not be back yet. That is no news to show.
+                if !network::changed_within(NETWORK_SETTLING) {
+                    let _ = app.emit("sync-progress", Progress { account_id, phase: "error".into(), done: 0, total: 0, message: e.0 });
+                }
             }
-            tokio::select! { _ = tokio::time::sleep(RETRY_AFTER) => {}, _ = wake.notified() => {} }
+            tokio::select! { _ = tokio::time::sleep(RETRY_AFTER) => {}, _ = wake.notified() => {}, _ = network::next_change() => {} }
         }
     });
 }
@@ -1766,6 +1778,14 @@ pub fn run() {
                 show_window(app.handle());
             }
             tauri::async_runtime::spawn(outbox_worker(app.handle().clone()));
+            // After sleep or a network change, connections opened before fail and are made again.
+            network::watch();
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(network::settle(move || {
+                let handle = handle.clone();
+                // The spare connections would fail on their next use; open fresh ones then.
+                tauri::async_runtime::spawn(async move { handle.state::<AppState>().interactive.lock().await.clear() });
+            }));
             for account in accounts {
                 spawn_account(app.handle().clone(), account.id);
             }
