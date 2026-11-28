@@ -251,7 +251,7 @@ function Unsubscribe({ sender, kind, to }: { sender: string; kind: "one-click" |
         </>
       ) : (
         <>
-          This is a mailing.
+          This message is from a mailing list.
           <Button className="ml-auto h-7" onClick={() => setAsking(true)}>
             Unsubscribe
           </Button>
